@@ -9,10 +9,10 @@ export default function HomePage() {
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
-      <main className="flex-1 container mx-auto px-4 py-8 overflow-x-hidden">
+      <main className="flex-1 mx-auto w-full max-w-6xl overflow-x-hidden px-6 py-8 lg:px-10">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold">Token Launches</h1>
-          <p className="mt-1 text-muted-foreground">
+          <h1 className="text-3xl font-bold text-zinc-100">Token Launches</h1>
+          <p className="mt-1 text-zinc-400">
             Browse active token launches on XYZ Chain
           </p>
         </div>

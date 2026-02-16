@@ -11,7 +11,7 @@ export function ActivityFeed() {
     <div className="space-y-4">
       {/* Section header with live indicator */}
       <div className="flex items-center gap-2">
-        <h2 className="text-xl font-semibold">Recent Activity</h2>
+        <h2 className="text-xl font-semibold text-zinc-100">Recent Activity</h2>
         <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
       </div>
 
@@ -33,9 +33,9 @@ export function ActivityFeed() {
 
       {/* Empty state */}
       {!isLoading && !error && (!trades || trades.length === 0) && (
-        <p className="text-center text-muted-foreground py-8">
-          No recent trades
-        </p>
+          <p className="py-8 text-center text-zinc-400">
+            No recent trades
+          </p>
       )}
 
       {/* Trade list */}

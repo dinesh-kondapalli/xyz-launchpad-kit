@@ -24,8 +24,8 @@ export function TokenCard({ token }: TokenCardProps) {
       : 0; // 0 while loading (brief flash, acceptable)
 
   return (
-    <Link href={`/token/${token.address}`} className="block touch-manipulation">
-      <Card className="hover:border-primary/50 transition-colors">
+    <Link href={`/token/${token.address}`} className="block w-full touch-manipulation">
+      <Card className="w-full transition-colors hover:border-primary/50">
         <CardHeader className="flex flex-row items-center gap-3 pb-2">
         {token.image ? (
           <img

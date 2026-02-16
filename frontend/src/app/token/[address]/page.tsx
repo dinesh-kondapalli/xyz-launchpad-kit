@@ -39,7 +39,7 @@ export default function TokenDetailPage() {
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
-      <main className="flex-1 container mx-auto px-4 py-8 overflow-x-hidden">
+      <main className="flex-1 mx-auto w-full max-w-6xl overflow-x-hidden px-6 py-8 lg:px-10">
         <Link
           href="/"
           className="text-sm text-muted-foreground hover:text-foreground mb-4 inline-block"
