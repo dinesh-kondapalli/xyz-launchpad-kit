@@ -1,0 +1,431 @@
+"use client";
+
+import { useEffect, useRef, useMemo, useState } from "react";
+import {
+  createChart,
+  type IChartApi,
+  type ISeriesApi,
+  type CandlestickData,
+  type HistogramData,
+  type LineData,
+  type UTCTimestamp,
+  CandlestickSeries,
+  HistogramSeries,
+  LineSeries,
+} from "lightweight-charts";
+import type { CandleResponse } from "@/lib/api";
+import { useXyzPrice } from "@/hooks/use-xyz-price";
+import type { ActiveIndicators } from "./indicator-toolbar";
+import {
+  calculateSMA,
+  calculateEMA,
+  calculateBollingerBands,
+  calculateRSI,
+  calculateMACD,
+} from "@/lib/indicators";
+import { RsiChart } from "./rsi-chart";
+import { MacdChart } from "./macd-chart";
+
+const TOTAL_SUPPLY = 100_000_000; // 100M tokens
+
+interface TradingChartCanvasProps {
+  data: CandleResponse;
+  indicators: ActiveIndicators;
+  showMCap: boolean;
+}
+
+// Indicator color palette
+const COLORS: Record<string, string> = {
+  sma7: "#f59e0b",
+  sma25: "#3b82f6",
+  sma99: "#a855f7",
+  ema7: "#f97316",
+  ema25: "#06b6d4",
+  bollUpper: "rgba(236,72,153,0.4)",
+  bollMiddle: "#ec4899",
+  bollLower: "rgba(236,72,153,0.4)",
+};
+
+function formatChartPrice(v: number): string {
+  if (v >= 1e9) return `$${(v / 1e9).toFixed(1)}B`;
+  if (v >= 1e6) return `$${(v / 1e6).toFixed(2)}M`;
+  if (v >= 1e3) return `$${(v / 1e3).toFixed(1)}K`;
+  if (v >= 1) return `$${v.toFixed(2)}`;
+  if (v >= 0.01) return `$${v.toFixed(4)}`;
+  if (v >= 0.0001) return `$${v.toFixed(6)}`;
+  return `$${v.toExponential(2)}`;
+}
+
+function toLineData(
+  timestamps: UTCTimestamp[],
+  values: (number | null)[],
+): LineData<UTCTimestamp>[] {
+  const result: LineData<UTCTimestamp>[] = [];
+  for (let i = 0; i < timestamps.length; i++) {
+    if (values[i] !== null) {
+      result.push({ time: timestamps[i], value: values[i]! });
+    }
+  }
+  return result;
+}
+
+interface LegendData {
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
+
+export function TradingChartCanvas({
+  data,
+  indicators,
+  showMCap,
+}: TradingChartCanvasProps) {
+  const { xyzPriceUsd } = useXyzPrice();
+  const [legend, setLegend] = useState<LegendData | null>(null);
+
+  // Main chart refs
+  const containerRef = useRef<HTMLDivElement>(null);
+  const chartRef = useRef<IChartApi | null>(null);
+  const candleSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
+  const volumeSeriesRef = useRef<ISeriesApi<"Histogram"> | null>(null);
+  const overlaysRef = useRef<Map<string, ISeriesApi<"Line">>>(new Map());
+
+  const multiplier = showMCap ? TOTAL_SUPPLY : 1;
+
+  // Pre-compute data for all indicators
+  const computed = useMemo(() => {
+    const priceMul = (xyzPriceUsd || 1) * multiplier;
+    const volMul = xyzPriceUsd || 1;
+    const timestamps: UTCTimestamp[] = [];
+    const closes: number[] = [];
+    const candleData: CandlestickData<UTCTimestamp>[] = [];
+    const volumeData: HistogramData<UTCTimestamp>[] = [];
+
+    for (const candle of data.candles) {
+      const ts = Math.floor(
+        new Date(candle.time).getTime() / 1000,
+      ) as UTCTimestamp;
+      timestamps.push(ts);
+
+      const open = (Number(candle.open) / 1e6) * priceMul;
+      const high = (Number(candle.high) / 1e6) * priceMul;
+      const low = (Number(candle.low) / 1e6) * priceMul;
+      const close = (Number(candle.close) / 1e6) * priceMul;
+
+      closes.push(close);
+      candleData.push({ time: ts, open, high, low, close });
+      volumeData.push({
+        time: ts,
+        value: (Number(candle.volume) / 1e6) * volMul,
+        color:
+          close >= open
+            ? "rgba(38, 166, 154, 0.5)"
+            : "rgba(239, 83, 80, 0.5)",
+      });
+    }
+
+    const rsi = calculateRSI(closes, 14);
+    const macd = calculateMACD(closes, 12, 26, 9);
+
+    return { timestamps, closes, candleData, volumeData, rsi, macd };
+  }, [data, xyzPriceUsd, multiplier]);
+
+  // Initialize main chart on mount
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const chart = createChart(containerRef.current, {
+      width: containerRef.current.clientWidth,
+      height: 400,
+      layout: {
+        background: { color: "transparent" },
+        textColor: "#9ca3af",
+      },
+      grid: {
+        vertLines: { color: "rgba(156, 163, 175, 0.1)" },
+        horzLines: { color: "rgba(156, 163, 175, 0.1)" },
+      },
+      timeScale: {
+        timeVisible: true,
+        secondsVisible: false,
+        borderColor: "rgba(156, 163, 175, 0.2)",
+      },
+      rightPriceScale: {
+        borderColor: "rgba(156, 163, 175, 0.2)",
+      },
+      crosshair: {
+        vertLine: { color: "rgba(156, 163, 175, 0.3)" },
+        horzLine: { color: "rgba(156, 163, 175, 0.3)" },
+      },
+      localization: {
+        priceFormatter: formatChartPrice,
+      },
+    });
+    chartRef.current = chart;
+
+    const candleSeries = chart.addSeries(CandlestickSeries, {
+      upColor: "#26a69a",
+      downColor: "#ef5350",
+      borderVisible: false,
+      wickUpColor: "#26a69a",
+      wickDownColor: "#ef5350",
+    });
+    candleSeries.priceScale().applyOptions({
+      scaleMargins: { top: 0.1, bottom: 0.4 },
+    });
+    candleSeriesRef.current = candleSeries;
+
+    const volumeSeries = chart.addSeries(HistogramSeries, {
+      priceFormat: { type: "volume" },
+      priceScaleId: "",
+    });
+    volumeSeries.priceScale().applyOptions({
+      scaleMargins: { top: 0.7, bottom: 0 },
+    });
+    volumeSeriesRef.current = volumeSeries;
+
+    // OHLCV legend on crosshair move
+    chart.subscribeCrosshairMove((param) => {
+      if (!param.time || !param.seriesData.size) {
+        setLegend(null);
+        return;
+      }
+      const cd = param.seriesData.get(candleSeries) as
+        | { open: number; high: number; low: number; close: number }
+        | undefined;
+      const vd = param.seriesData.get(volumeSeries) as
+        | { value: number }
+        | undefined;
+      if (cd && "open" in cd) {
+        setLegend({
+          open: cd.open,
+          high: cd.high,
+          low: cd.low,
+          close: cd.close,
+          volume: vd?.value ?? 0,
+        });
+      }
+    });
+
+    const handleResize = () => {
+      if (containerRef.current && chartRef.current) {
+        chartRef.current.applyOptions({
+          width: containerRef.current.clientWidth,
+        });
+      }
+    };
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      overlaysRef.current.clear();
+      if (chartRef.current) {
+        chartRef.current.remove();
+        chartRef.current = null;
+      }
+      candleSeriesRef.current = null;
+      volumeSeriesRef.current = null;
+    };
+  }, []);
+
+  // Update chart data + overlay indicators
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart || !candleSeriesRef.current || !volumeSeriesRef.current) return;
+    if (!computed.candleData.length) return;
+
+    candleSeriesRef.current.setData(computed.candleData);
+
+    // Volume
+    volumeSeriesRef.current.setData(
+      indicators.volume ? computed.volumeData : [],
+    );
+
+    // Build wanted overlays
+    const wanted = new Map<
+      string,
+      { data: LineData<UTCTimestamp>[]; color: string; width: number }
+    >();
+
+    if (indicators.sma7) {
+      wanted.set("sma7", {
+        data: toLineData(
+          computed.timestamps,
+          calculateSMA(computed.closes, 7),
+        ),
+        color: COLORS.sma7,
+        width: 2,
+      });
+    }
+    if (indicators.sma25) {
+      wanted.set("sma25", {
+        data: toLineData(
+          computed.timestamps,
+          calculateSMA(computed.closes, 25),
+        ),
+        color: COLORS.sma25,
+        width: 2,
+      });
+    }
+    if (indicators.sma99) {
+      wanted.set("sma99", {
+        data: toLineData(
+          computed.timestamps,
+          calculateSMA(computed.closes, 99),
+        ),
+        color: COLORS.sma99,
+        width: 2,
+      });
+    }
+    if (indicators.ema7) {
+      wanted.set("ema7", {
+        data: toLineData(
+          computed.timestamps,
+          calculateEMA(computed.closes, 7),
+        ),
+        color: COLORS.ema7,
+        width: 2,
+      });
+    }
+    if (indicators.ema25) {
+      wanted.set("ema25", {
+        data: toLineData(
+          computed.timestamps,
+          calculateEMA(computed.closes, 25),
+        ),
+        color: COLORS.ema25,
+        width: 2,
+      });
+    }
+    if (indicators.bollinger) {
+      const bb = calculateBollingerBands(computed.closes, 20, 2);
+      wanted.set("bollUpper", {
+        data: toLineData(computed.timestamps, bb.upper),
+        color: COLORS.bollUpper,
+        width: 1,
+      });
+      wanted.set("bollMiddle", {
+        data: toLineData(computed.timestamps, bb.middle),
+        color: COLORS.bollMiddle,
+        width: 1,
+      });
+      wanted.set("bollLower", {
+        data: toLineData(computed.timestamps, bb.lower),
+        color: COLORS.bollLower,
+        width: 1,
+      });
+    }
+
+    // Remove stale overlays
+    for (const [name, series] of overlaysRef.current) {
+      if (!wanted.has(name)) {
+        chart.removeSeries(series);
+        overlaysRef.current.delete(name);
+      }
+    }
+
+    // Add or update overlays
+    for (const [name, config] of wanted) {
+      let series = overlaysRef.current.get(name);
+      if (!series) {
+        series = chart.addSeries(LineSeries, {
+          color: config.color,
+          lineWidth: config.width as 1 | 2 | 3 | 4,
+          priceLineVisible: false,
+          lastValueVisible: false,
+          crosshairMarkerVisible: false,
+        });
+        overlaysRef.current.set(name, series);
+      }
+      series.setData(config.data);
+    }
+
+    chart.timeScale().fitContent();
+
+    // Set legend to last candle when data loads
+    const last = computed.candleData[computed.candleData.length - 1];
+    const lastVol = computed.volumeData[computed.volumeData.length - 1];
+    if (last) {
+      setLegend({
+        open: last.open,
+        high: last.high,
+        low: last.low,
+        close: last.close,
+        volume: lastVol?.value ?? 0,
+      });
+    }
+  }, [computed, indicators]);
+
+  const up = legend ? legend.close >= legend.open : true;
+  const change = legend ? legend.close - legend.open : 0;
+  const changePct =
+    legend && legend.open !== 0
+      ? ((legend.close - legend.open) / legend.open) * 100
+      : 0;
+
+  return (
+    <div>
+      {/* OHLCV Legend */}
+      <div className="px-3 pt-2 pb-0.5 text-xs font-mono flex flex-wrap items-center gap-x-3 gap-y-0.5 min-h-[28px]">
+        <span className="text-muted-foreground font-sans font-medium text-[11px]">
+          {showMCap ? "Market Cap" : "Price"} (USD)
+        </span>
+        {legend && (
+          <>
+            <span>
+              <span className="text-muted-foreground">O</span>
+              <span className={up ? "text-green-500" : "text-red-500"}>
+                {formatChartPrice(legend.open)}
+              </span>
+            </span>
+            <span>
+              <span className="text-muted-foreground">H</span>
+              <span className="text-green-500">
+                {formatChartPrice(legend.high)}
+              </span>
+            </span>
+            <span>
+              <span className="text-muted-foreground">L</span>
+              <span className="text-red-500">
+                {formatChartPrice(legend.low)}
+              </span>
+            </span>
+            <span>
+              <span className="text-muted-foreground">C</span>
+              <span className={up ? "text-green-500" : "text-red-500"}>
+                {formatChartPrice(legend.close)}
+              </span>
+            </span>
+            <span className={up ? "text-green-500" : "text-red-500"}>
+              {up ? "+" : "-"}
+              {formatChartPrice(Math.abs(change))} (
+              {changePct >= 0 ? "+" : ""}
+              {changePct.toFixed(2)}%)
+            </span>
+          </>
+        )}
+      </div>
+      {legend && indicators.volume && (
+        <div className="px-3 pb-1 text-xs font-mono">
+          <span className="text-muted-foreground font-sans text-[11px]">
+            Volume
+          </span>{" "}
+          <span className="text-blue-400">
+            {formatChartPrice(legend.volume)}
+          </span>
+        </div>
+      )}
+
+      <div ref={containerRef} className="w-full" />
+
+      {indicators.rsi && (
+        <RsiChart timestamps={computed.timestamps} values={computed.rsi} />
+      )}
+      {indicators.macd && (
+        <MacdChart timestamps={computed.timestamps} macd={computed.macd} />
+      )}
+    </div>
+  );
+}

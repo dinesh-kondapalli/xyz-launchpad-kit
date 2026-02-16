@@ -1,0 +1,46 @@
+{
+  "name": "@xyz-chain/sdk",
+  "version": "0.1.0",
+  "description": "TypeScript SDK for XYZ Chain - a zero-inflation blockchain for bridged Solana tokens",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "keywords": [
+    "xyz-chain",
+    "cosmos",
+    "blockchain",
+    "sdk",
+    "typescript"
+  ],
+  "author": "XYZ Chain",
+  "license": "MIT",
+  "dependencies": {
+    "@cosmjs/amino": "^0.32.4",
+    "@cosmjs/cosmwasm-stargate": "^0.32.4",
+    "@cosmjs/proto-signing": "^0.32.4",
+    "@cosmjs/stargate": "^0.32.4"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsup": "^8.3.0",
+    "typescript": "^5.7.0",
+    "vitest": "^2.1.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

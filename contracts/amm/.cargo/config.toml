@@ -1,0 +1,7 @@
+# CosmWasm build configuration
+# wasmvm v2.3.1 does not support bulk-memory, sign-ext, or reference-types WASM features.
+# Build with Rust <= 1.85 to avoid bulk-memory, then use wasm-opt for sign-ext lowering:
+#   cargo build --release --target wasm32-unknown-unknown --lib
+#   wasm-opt --enable-sign-ext --enable-mutable-globals --signext-lowering -Oz --strip-debug input.wasm -o output.wasm
+[target.wasm32-unknown-unknown]
+rustflags = ["-C", "link-arg=-s", "-C", "target-feature=-reference-types,-multivalue"]
