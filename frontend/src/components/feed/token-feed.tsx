@@ -76,7 +76,7 @@ export function TokenFeed() {
   return (
     <div className="space-y-7">
       <div className="flex flex-wrap gap-2">
-        {marqueeTokens.length > 0 ? (
+        {/*{marqueeTokens.length > 0 ? (
           marqueeTokens.map((token, idx) => (
             <Link
               key={token.address}
@@ -92,7 +92,7 @@ export function TokenFeed() {
           <span className="rounded-md border border-border bg-card/70 px-3 py-2 text-sm text-muted-foreground">
             Waiting for fresh launches...
           </span>
-        )}
+        )}*/}
       </div>
 
       <section className="rounded-2xl border border-border/70 bg-card/65 px-4 py-6 backdrop-blur-sm sm:px-6">
