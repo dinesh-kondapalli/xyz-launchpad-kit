@@ -1,1 +1,0 @@
-/Users/Andy_C/official-xyz/contracts/amm/target/wasm32-unknown-unknown/release/xyz_amm.wasm: /Users/Andy_C/official-xyz/contracts/amm/src/contract.rs /Users/Andy_C/official-xyz/contracts/amm/src/error.rs /Users/Andy_C/official-xyz/contracts/amm/src/lib.rs /Users/Andy_C/official-xyz/contracts/amm/src/msg.rs /Users/Andy_C/official-xyz/contracts/amm/src/state.rs
