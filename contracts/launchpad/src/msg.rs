@@ -15,6 +15,8 @@ pub struct InstantiateMsg {
     pub target_graduation_usd: Uint128,
     pub min_graduation_threshold: Uint128,
     pub max_graduation_threshold: Uint128,
+    pub target_starting_mc_usd: Uint128,
+    pub target_raised_usd: Uint128,
 }
 
 #[cw_serde]
@@ -47,11 +49,11 @@ pub enum ExecuteMsg {
     },
     /// Update config parameters (admin only)
     UpdateConfig {
-        creation_fee: Option<Uint128>,
-        graduation_threshold: Option<Uint128>,
         target_graduation_usd: Option<Uint128>,
         min_graduation_threshold: Option<Uint128>,
         max_graduation_threshold: Option<Uint128>,
+        target_starting_mc_usd: Option<Uint128>,
+        target_raised_usd: Option<Uint128>,
     },
     // Note: Reply handler is implemented in contract.rs, not as an ExecuteMsg variant
 }
@@ -109,6 +111,10 @@ pub struct CurveResponse {
     pub current_price: String,
     pub graduated: bool,
     pub created_at: u64,
+    pub virtual_xyz_start: Uint128,
+    pub virtual_tokens_start: Uint128,
+    pub tokens_on_curve: Uint128,
+    pub tokens_for_lp: Uint128,
 }
 
 #[cw_serde]
@@ -139,6 +145,8 @@ pub struct ConfigResponse {
     pub target_graduation_usd: Uint128,
     pub min_graduation_threshold: Uint128,
     pub max_graduation_threshold: Uint128,
+    pub target_starting_mc_usd: Uint128,
+    pub target_raised_usd: Uint128,
 }
 
 #[cw_serde]
@@ -164,15 +172,4 @@ pub struct OracleResponse {
 }
 
 #[cw_serde]
-pub struct MigrateMsg {
-    /// Admin address for oracle/config updates
-    pub admin: String,
-    /// Target graduation in micro-USD (default 10_000_000_000 = $10K)
-    pub target_graduation_usd: Uint128,
-    /// Min threshold in uxyz (default 100_000_000_000 = 100K XYZ)
-    pub min_graduation_threshold: Uint128,
-    /// Max threshold in uxyz (default 50_000_000_000_000 = 50M XYZ)
-    pub max_graduation_threshold: Uint128,
-    /// Initial XYZ/USD price in micro-USD (optional, 0 if no price yet)
-    pub initial_xyz_usd_price: Uint128,
-}
+pub struct MigrateMsg {}

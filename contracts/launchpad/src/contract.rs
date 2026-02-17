@@ -25,6 +25,7 @@ const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 const REPLY_CW20_INSTANTIATE: u64 = 1;
 
 // Fixed total supply: 100 million tokens with 6 decimals
+// Starting FDV = base_price * total_supply = 0.000015 XYZ * 100M = 1,500 XYZ
 pub const TOTAL_SUPPLY: u128 = 100_000_000_000_000; // 100 million * 10^6
 
 // ===========================================
@@ -38,9 +39,8 @@ pub const TOKENS_ON_CURVE: u128 = 79_310_000_000_000; // 79.31M * 10^6
 pub const TOKENS_FOR_LP: u128 = 20_690_000_000_000; // 20.69M * 10^6
 
 /// Virtual XYZ reserves at curve start (in uxyz)
-/// Equivalent to pump.fun's 30 virtual SOL (~$2,610) at XYZ = $0.000075.
-/// $2,610 / $0.000075 = 34,800,000 XYZ.
-/// Starting mcap ≈ 34.8M * (100M / 107.3M) * $0.000075 ≈ $2,432.
+/// Determines starting price and total XYZ raised at graduation.
+/// Higher value = more XYZ raised at graduation, lower starting price.
 pub const VIRTUAL_XYZ_START: u128 = 34_800_000_000_000; // 34,800,000 XYZ
 
 /// Virtual token reserves at curve start (in base units with 6 decimals)
@@ -54,6 +54,166 @@ pub const VIRTUAL_TOKENS_START: u128 = 107_300_000_000_000; // 107.3M tokens
 pub const K: u128 = 3_734_040_000_000_000_000_000_000_000;
 
 // ===========================================
+// Dynamic Curve Parameter Computation
+// ===========================================
+
+/// Precision multiplier for fixed-point sqrt computation
+const CURVE_PRECISION: u128 = 1_000_000;
+
+#[derive(Debug)]
+struct CurveParams {
+    virtual_xyz_start: u128,
+    virtual_tokens_start: u128,
+    curve_k: u128,
+    tokens_on_curve: u128,
+    tokens_for_lp: u128,
+}
+
+/// Integer square root using Newton's method
+fn isqrt(n: u128) -> u128 {
+    if n == 0 {
+        return 0;
+    }
+    let mut x = n;
+    let mut y = (x + 1) / 2;
+    while y < x {
+        x = y;
+        y = (x + n / x) / 2;
+    }
+    x
+}
+
+/// Compute per-curve bonding curve parameters from USD targets and oracle price.
+///
+/// All USD values in micro-USD (6 decimals). XYZ amounts in uxyz.
+/// Token amounts in utokens (with 6 decimal places).
+///
+/// Key formulas (S = sqrt(graduation_mc / starting_mc)):
+///   tokens_on_curve = raised * TOTAL_SUPPLY / (starting_mc * S)
+///   virtual_tokens  = tokens_on_curve * S / (S - 1)
+///   raised_uxyz     = raised_usd * 10^6 / xyz_price
+///   virtual_xyz     = raised_uxyz / (S - 1)
+///   K               = virtual_xyz * virtual_tokens
+fn compute_curve_params(
+    xyz_usd_price: u128,
+    target_starting_mc_usd: u128,
+    target_graduation_mc_usd: u128,
+    target_raised_usd: u128,
+) -> Result<CurveParams, ContractError> {
+    if xyz_usd_price == 0 {
+        return Err(ContractError::OraclePriceRequired {});
+    }
+    if target_starting_mc_usd == 0 {
+        return Err(ContractError::InvalidCurveParams {
+            reason: "target_starting_mc_usd must be > 0".to_string(),
+        });
+    }
+    if target_graduation_mc_usd <= target_starting_mc_usd {
+        return Err(ContractError::InvalidCurveParams {
+            reason: "graduation MC must be > starting MC".to_string(),
+        });
+    }
+
+    // 1. MC ratio (integer)
+    let mc_ratio = target_graduation_mc_usd / target_starting_mc_usd;
+
+    // 2. S_scaled = isqrt(mc_ratio * PRECISION^2) ≈ sqrt(mc_ratio) * PRECISION
+    let s_scaled = isqrt(mc_ratio * CURVE_PRECISION * CURVE_PRECISION);
+    if s_scaled <= CURVE_PRECISION {
+        return Err(ContractError::InvalidCurveParams {
+            reason: "sqrt(mc_ratio) must be > 1".to_string(),
+        });
+    }
+    let s_minus_one = s_scaled - CURVE_PRECISION;
+
+    // 3. tokens_on_curve (utokens) = raised * TOTAL_SUPPLY * PRECISION / (starting_mc * S_scaled)
+    let toc_num = target_raised_usd
+        .checked_mul(TOTAL_SUPPLY)
+        .and_then(|v| v.checked_mul(CURVE_PRECISION))
+        .ok_or_else(|| ContractError::InvalidCurveParams {
+            reason: "overflow computing tokens_on_curve numerator".to_string(),
+        })?;
+    let toc_denom = target_starting_mc_usd
+        .checked_mul(s_scaled)
+        .ok_or_else(|| ContractError::InvalidCurveParams {
+            reason: "overflow computing tokens_on_curve denominator".to_string(),
+        })?;
+    let tokens_on_curve = toc_num / toc_denom;
+
+    if tokens_on_curve == 0 || tokens_on_curve >= TOTAL_SUPPLY {
+        return Err(ContractError::InvalidCurveParams {
+            reason: format!(
+                "tokens_on_curve out of range: {} (must be 0 < x < {})",
+                tokens_on_curve, TOTAL_SUPPLY
+            ),
+        });
+    }
+
+    // 4. virtual_tokens (utokens) = tokens_on_curve * S_scaled / s_minus_one
+    let virtual_tokens_start = tokens_on_curve
+        .checked_mul(s_scaled)
+        .ok_or_else(|| ContractError::InvalidCurveParams {
+            reason: "overflow computing virtual_tokens".to_string(),
+        })?
+        / s_minus_one;
+
+    // 5. raised_uxyz = raised_usd * 10^6 / xyz_price
+    let raised_uxyz = target_raised_usd
+        .checked_mul(1_000_000)
+        .ok_or_else(|| ContractError::InvalidCurveParams {
+            reason: "overflow computing raised_uxyz".to_string(),
+        })?
+        / xyz_usd_price;
+
+    // 6. virtual_xyz (uxyz) = raised_uxyz * PRECISION / s_minus_one
+    let virtual_xyz_start = raised_uxyz
+        .checked_mul(CURVE_PRECISION)
+        .ok_or_else(|| ContractError::InvalidCurveParams {
+            reason: "overflow computing virtual_xyz".to_string(),
+        })?
+        / s_minus_one;
+
+    if virtual_xyz_start == 0 {
+        return Err(ContractError::InvalidCurveParams {
+            reason: "virtual_xyz_start is zero (price too high or raised too low)".to_string(),
+        });
+    }
+
+    // 7. K = virtual_xyz * virtual_tokens
+    let curve_k = virtual_xyz_start
+        .checked_mul(virtual_tokens_start)
+        .ok_or_else(|| ContractError::InvalidCurveParams {
+            reason: "overflow computing K (virtual reserves too large)".to_string(),
+        })?;
+
+    // 8. tokens_for_lp
+    let tokens_for_lp = TOTAL_SUPPLY - tokens_on_curve;
+
+    Ok(CurveParams {
+        virtual_xyz_start,
+        virtual_tokens_start,
+        curve_k,
+        tokens_on_curve,
+        tokens_for_lp,
+    })
+}
+
+/// Extract per-curve constants, falling back to legacy hardcoded values if not set.
+fn get_curve_constants(curve: &Curve) -> (u128, u128, u128, u128, u128) {
+    if curve.curve_k > 0 {
+        (
+            curve.virtual_xyz_start,
+            curve.virtual_tokens_start,
+            curve.curve_k,
+            curve.tokens_on_curve,
+            curve.tokens_for_lp,
+        )
+    } else {
+        (VIRTUAL_XYZ_START, VIRTUAL_TOKENS_START, K, TOKENS_ON_CURVE, TOKENS_FOR_LP)
+    }
+}
+
+// ===========================================
 // Constant Product Curve Functions
 // ===========================================
 
@@ -61,22 +221,24 @@ pub const K: u128 = 3_734_040_000_000_000_000_000_000_000;
 /// Returns price in uxyz per whole token (per 10^6 base units).
 ///
 /// Spot price = virtual_xyz / virtual_tokens * 10^6
-/// Simplified: price = K * 10^6 / (VIRTUAL_TOKENS_START - tokens_sold)^2
-fn calculate_price_cp(tokens_sold: u128) -> u128 {
-    let virtual_tokens = VIRTUAL_TOKENS_START - tokens_sold;
-    // K * 10^6 might overflow u128? K = 1.151e23, * 10^6 = 1.151e29, which is < 3.4e38. Safe.
-    K * 1_000_000 / (virtual_tokens * virtual_tokens)
+/// Simplified: price = k * 10^6 / (virtual_tokens_start - tokens_sold)^2
+fn calculate_price_cp(tokens_sold: u128, virtual_tokens_start: u128, k: u128) -> u128 {
+    let virtual_tokens = virtual_tokens_start - tokens_sold;
+    k * 1_000_000 / (virtual_tokens * virtual_tokens)
 }
 
 /// Calculate tokens received for XYZ input using constant product formula.
 /// Fee is deducted from xyz_input BEFORE applying to curve.
 /// Returns (tokens_out, fee_amount) in base units.
 ///
-/// Formula: tokens_out = virtual_tokens_current - K / (virtual_xyz_current + xyz_after_fee)
+/// Formula: tokens_out = virtual_tokens_current - k / (virtual_xyz_current + xyz_after_fee)
 fn calculate_buy_cp(
     tokens_sold: u128,
     xyz_input: u128,
     buy_fee_bps: u16,
+    vt_start: u128,
+    k: u128,
+    toc: u128,
 ) -> Result<(u128, u128), ContractError> {
     // Deduct buy fee
     let fee = xyz_input * (buy_fee_bps as u128) / 10000;
@@ -87,16 +249,16 @@ fn calculate_buy_cp(
     }
 
     // Current virtual reserves
-    let virtual_tokens = VIRTUAL_TOKENS_START - tokens_sold;
-    let virtual_xyz = K / virtual_tokens;
+    let virtual_tokens = vt_start - tokens_sold;
+    let virtual_xyz = k / virtual_tokens;
 
     // After adding XYZ to pool
     let new_virtual_xyz = virtual_xyz + xyz_after_fee;
-    let new_virtual_tokens = K / new_virtual_xyz;
+    let new_virtual_tokens = k / new_virtual_xyz;
     let tokens_out = virtual_tokens - new_virtual_tokens;
 
     // Cap at remaining curve tokens
-    let tokens_remaining = TOKENS_ON_CURVE.saturating_sub(tokens_sold);
+    let tokens_remaining = toc.saturating_sub(tokens_sold);
     let tokens_out = tokens_out.min(tokens_remaining);
 
     if tokens_out == 0 {
@@ -110,11 +272,13 @@ fn calculate_buy_cp(
 /// Fee is deducted from XYZ output AFTER computing curve value.
 /// Returns (xyz_out_after_fee, total_fee) in uxyz.
 ///
-/// Formula: xyz_returned_before_fee = virtual_xyz_current - K / (virtual_tokens_current + tokens_returned)
+/// Formula: xyz_returned_before_fee = virtual_xyz_current - k / (virtual_tokens_current + tokens_returned)
 fn calculate_sell_cp(
     tokens_sold: u128,
     tokens_input: u128,
     sell_fee_bps: u16,
+    vt_start: u128,
+    k: u128,
 ) -> Result<(u128, u128), ContractError> {
     if tokens_input > tokens_sold {
         return Err(ContractError::Std(StdError::generic_err(
@@ -123,12 +287,12 @@ fn calculate_sell_cp(
     }
 
     // Current virtual reserves
-    let virtual_tokens = VIRTUAL_TOKENS_START - tokens_sold;
-    let virtual_xyz = K / virtual_tokens;
+    let virtual_tokens = vt_start - tokens_sold;
+    let virtual_xyz = k / virtual_tokens;
 
     // After returning tokens to the pool
     let new_virtual_tokens = virtual_tokens + tokens_input;
-    let new_virtual_xyz = K / new_virtual_tokens;
+    let new_virtual_xyz = k / new_virtual_tokens;
 
     // XYZ to return (before fee)
     let xyz_before_fee = virtual_xyz - new_virtual_xyz;
@@ -146,7 +310,7 @@ fn calculate_sell_cp(
 
 /// Compute dynamic graduation threshold from oracle price.
 ///
-/// Formula: threshold_uxyz = target_usd * 1_000_000 / xyz_usd_price
+/// Formula: threshold_uxyz = target_raised_usd * 10^6 / xyz_usd_price
 /// Result is clamped to [min_threshold, max_threshold].
 /// If price is 0, returns fallback_threshold.
 ///
@@ -154,7 +318,7 @@ fn calculate_sell_cp(
 /// All XYZ values in uxyz (6 decimals).
 fn compute_dynamic_threshold(
     xyz_usd_price: u128,        // micro-USD per XYZ
-    target_graduation_usd: u128, // micro-USD target market cap
+    target_raised_usd: u128,    // micro-USD target raised
     min_threshold: u128,         // uxyz
     max_threshold: u128,         // uxyz
     fallback_threshold: u128,    // uxyz (used when price is 0)
@@ -163,19 +327,16 @@ fn compute_dynamic_threshold(
         return fallback_threshold;
     }
 
-    // raw_threshold_uxyz = target_usd_micro * 10^6 * 10^6 / (xyz_usd_price * 10^3)
-    // Simplified: target_usd_micro * 10^9 / xyz_usd_price
+    // raw_threshold_uxyz = target_raised_usd * 10^6 / xyz_usd_price
     //
     // Derivation:
-    //   target_usd is in micro-USD (10^-6 USD)
+    //   target_raised_usd is in micro-USD (10^-6 USD)
     //   xyz_usd_price is in micro-USD per whole XYZ (10^-6 USD/XYZ)
-    //   target / price gives whole XYZ
-    //   Multiply by 10^6 to get uxyz
-    //   Additional 10^3 factor accounts for the bonding curve's
-    //   XYZ reserves representing pooled liquidity (not 1:1 market cap).
-    let raw = target_graduation_usd
-        .checked_mul(1_000_000_000)
-        .expect("target * 10^9 overflow")
+    //   target / price gives whole XYZ needed
+    //   Multiply by 10^6 to convert to uxyz
+    let raw = target_raised_usd
+        .checked_mul(1_000_000)
+        .expect("target * 10^6 overflow")
         / xyz_usd_price;
 
     // Clamp to bounds
@@ -237,6 +398,8 @@ pub fn instantiate(
         target_graduation_usd: msg.target_graduation_usd.u128(),
         min_graduation_threshold: min_thresh,
         max_graduation_threshold: max_thresh,
+        target_starting_mc_usd: msg.target_starting_mc_usd.u128(),
+        target_raised_usd: msg.target_raised_usd.u128(),
     };
     CONFIG.save(deps.storage, &config)?;
 
@@ -284,12 +447,12 @@ pub fn execute(
             execute_update_xyz_price(deps, env, info, xyz_usd_price)
         }
         ExecuteMsg::UpdateConfig {
-            creation_fee,
-            graduation_threshold,
             target_graduation_usd,
             min_graduation_threshold,
             max_graduation_threshold,
-        } => execute_update_config(deps, info, creation_fee, graduation_threshold, target_graduation_usd, min_graduation_threshold, max_graduation_threshold),
+            target_starting_mc_usd,
+            target_raised_usd,
+        } => execute_update_config(deps, info, target_graduation_usd, min_graduation_threshold, max_graduation_threshold, target_starting_mc_usd, target_raised_usd),
     }
 }
 
@@ -314,6 +477,29 @@ fn execute_create_token(
         });
     }
 
+    // Load oracle price and compute per-curve bonding curve parameters
+    let oracle = ORACLE_STATE.may_load(deps.storage)?;
+    let xyz_usd_price = oracle.map(|o| o.xyz_usd_price).unwrap_or(0);
+    if xyz_usd_price == 0 {
+        return Err(ContractError::OraclePriceRequired {});
+    }
+
+    let params = compute_curve_params(
+        xyz_usd_price,
+        config.target_starting_mc_usd,
+        config.target_graduation_usd, // graduation MC target
+        config.target_raised_usd,
+    )?;
+
+    // Compute initial graduation threshold for this curve
+    let grad_threshold = compute_dynamic_threshold(
+        xyz_usd_price,
+        config.target_raised_usd,
+        config.min_graduation_threshold,
+        config.max_graduation_threshold,
+        config.graduation_threshold,
+    );
+
     // Store pending curve info for reply handler
     let pending = PendingCurve {
         metadata: TokenMetadata {
@@ -325,6 +511,12 @@ fn execute_create_token(
         },
         creator: info.sender.clone(),
         initial_xyz: xyz_sent,
+        virtual_xyz_start: params.virtual_xyz_start,
+        virtual_tokens_start: params.virtual_tokens_start,
+        curve_k: params.curve_k,
+        tokens_on_curve: params.tokens_on_curve,
+        tokens_for_lp: params.tokens_for_lp,
+        graduation_threshold_uxyz: grad_threshold,
     };
     PENDING_CURVE.save(deps.storage, &pending)?;
 
@@ -400,23 +592,17 @@ fn execute_update_xyz_price(
 fn execute_update_config(
     deps: DepsMut,
     info: MessageInfo,
-    creation_fee: Option<Uint128>,
-    graduation_threshold: Option<Uint128>,
     target_graduation_usd: Option<Uint128>,
     min_graduation_threshold: Option<Uint128>,
     max_graduation_threshold: Option<Uint128>,
+    target_starting_mc_usd: Option<Uint128>,
+    target_raised_usd: Option<Uint128>,
 ) -> Result<Response, ContractError> {
     let mut config = CONFIG.load(deps.storage)?;
     if info.sender != config.admin {
         return Err(ContractError::Unauthorized {});
     }
 
-    if let Some(val) = creation_fee {
-        config.creation_fee = val.u128();
-    }
-    if let Some(val) = graduation_threshold {
-        config.graduation_threshold = val.u128();
-    }
     if let Some(val) = target_graduation_usd {
         config.target_graduation_usd = val.u128();
     }
@@ -425,6 +611,12 @@ fn execute_update_config(
     }
     if let Some(val) = max_graduation_threshold {
         config.max_graduation_threshold = val.u128();
+    }
+    if let Some(val) = target_starting_mc_usd {
+        config.target_starting_mc_usd = val.u128();
+    }
+    if let Some(val) = target_raised_usd {
+        config.target_raised_usd = val.u128();
     }
 
     // Validate bounds after updates
@@ -441,7 +633,9 @@ fn execute_update_config(
         .add_attribute("action", "update_config")
         .add_attribute("target_graduation_usd", config.target_graduation_usd.to_string())
         .add_attribute("min_threshold", config.min_graduation_threshold.to_string())
-        .add_attribute("max_threshold", config.max_graduation_threshold.to_string()))
+        .add_attribute("max_threshold", config.max_graduation_threshold.to_string())
+        .add_attribute("target_starting_mc_usd", config.target_starting_mc_usd.to_string())
+        .add_attribute("target_raised_usd", config.target_raised_usd.to_string()))
 }
 
 /// Load oracle and compute effective threshold for a curve.
@@ -458,7 +652,7 @@ fn load_effective_threshold(
 
     let computed = compute_dynamic_threshold(
         oracle_price,
-        config.target_graduation_usd,
+        config.target_raised_usd,
         config.min_graduation_threshold,
         config.max_graduation_threshold,
         config.graduation_threshold, // fallback = old global threshold
@@ -496,11 +690,14 @@ fn execute_buy(
         return Err(ContractError::InsufficientFunds {});
     }
 
-    // Calculate tokens out using constant product curve
-    let (tokens_out, fee) = calculate_buy_cp(curve.tokens_sold, xyz_input, config.buy_fee_bps)?;
+    // Get per-curve constants (or legacy fallback)
+    let (_vx, vt, k, toc, _tlp) = get_curve_constants(&curve);
 
-    // Check remaining supply on curve (buying capped at TOKENS_ON_CURVE, not TOTAL_SUPPLY)
-    let tokens_remaining_on_curve = TOKENS_ON_CURVE.saturating_sub(curve.tokens_sold);
+    // Calculate tokens out using constant product curve
+    let (tokens_out, fee) = calculate_buy_cp(curve.tokens_sold, xyz_input, config.buy_fee_bps, vt, k, toc)?;
+
+    // Check remaining supply on curve
+    let tokens_remaining_on_curve = toc.saturating_sub(curve.tokens_sold);
     if tokens_out > tokens_remaining_on_curve {
         return Err(ContractError::NoTokensAvailable {});
     }
@@ -513,14 +710,9 @@ fn execute_buy(
         });
     }
 
-    // Calculate creator's share of fee
-    let creator_share = fee * (config.creator_fee_share_bps as u128) / 10000;
-    let _lp_share = fee - creator_share;
-
-    // Update curve state
+    // Update curve state — all fees stay in reserves (LP)
     curve.tokens_sold += tokens_out;
-    curve.xyz_reserves += xyz_input - creator_share; // XYZ minus creator's fee
-    curve.creator_fees_earned += creator_share;
+    curve.xyz_reserves += xyz_input;
 
     // Compute effective threshold and ratchet it on the curve
     let threshold = load_effective_threshold(deps.storage, &config, &curve);
@@ -542,17 +734,6 @@ fn execute_buy(
         // Build messages
         let mut messages: Vec<cosmwasm_std::CosmosMsg> = vec![];
 
-        // Pay creator their fee share
-        if creator_share > 0 {
-            messages.push(cosmwasm_std::CosmosMsg::Bank(BankMsg::Send {
-                to_address: curve.creator.to_string(),
-                amount: vec![Coin {
-                    denom: "uxyz".to_string(),
-                    amount: Uint128::from(creator_share),
-                }],
-            }));
-        }
-
         // Transfer tokens to buyer
         messages.push(cosmwasm_std::CosmosMsg::Wasm(WasmMsg::Execute {
             contract_addr: token_address.clone(),
@@ -573,13 +754,18 @@ fn execute_buy(
             funds: vec![],
         }));
 
-        // Create AMM pool
+        // Create AMM pool with augmented fee protection
+        let lp_target = xyz_for_pool
+            .checked_mul(GRADUATION_LP_TARGET_MULTIPLIER)
+            .unwrap_or(xyz_for_pool);
         messages.push(cosmwasm_std::CosmosMsg::Wasm(WasmMsg::Execute {
             contract_addr: config.amm_contract.to_string(),
             msg: to_binary(&AmmExecuteMsg::CreatePool {
                 token_address: token_address.clone(),
                 xyz_amount: Uint128::from(xyz_for_pool),
                 token_amount: Uint128::from(tokens_remaining),
+                augmented_fee_bps: Some(GRADUATION_AUGMENTED_FEE_BPS),
+                lp_target_uxyz: Some(lp_target.to_string()),
             })?,
             funds: vec![Coin {
                 denom: "uxyz".to_string(),
@@ -593,7 +779,6 @@ fn execute_buy(
             .add_attribute("buyer", info.sender.to_string())
             .add_attribute("token_address", token_address)
             .add_attribute("tokens_out", tokens_out.to_string())
-            .add_attribute("creator_fee", creator_share.to_string())
             .add_attribute("graduated", "true")
             .add_attribute("xyz_for_pool", xyz_for_pool.to_string())
             .add_attribute("tokens_for_pool", tokens_remaining.to_string()));
@@ -602,39 +787,24 @@ fn execute_buy(
     // Save curve (non-graduating case)
     CURVES.save(deps.storage, &token_addr, &curve)?;
 
-    // Build messages
-    let mut messages: Vec<cosmwasm_std::CosmosMsg> = vec![];
-
-    // Pay creator their fee share
-    if creator_share > 0 {
-        messages.push(cosmwasm_std::CosmosMsg::Bank(BankMsg::Send {
-            to_address: curve.creator.to_string(),
-            amount: vec![Coin {
-                denom: "uxyz".to_string(),
-                amount: Uint128::from(creator_share),
-            }],
-        }));
-    }
-
     // Transfer tokens to buyer
-    messages.push(cosmwasm_std::CosmosMsg::Wasm(WasmMsg::Execute {
+    let transfer_msg = WasmMsg::Execute {
         contract_addr: token_address.clone(),
         msg: to_binary(&cw20::Cw20ExecuteMsg::Transfer {
             recipient: info.sender.to_string(),
             amount: Uint128::from(tokens_out),
         })?,
         funds: vec![],
-    }));
+    };
 
     Ok(Response::new()
-        .add_messages(messages)
+        .add_message(transfer_msg)
         .add_attribute("action", "buy")
         .add_attribute("buyer", info.sender.to_string())
         .add_attribute("token_address", token_address)
         .add_attribute("xyz_input", xyz_input.to_string())
         .add_attribute("tokens_out", tokens_out.to_string())
-        .add_attribute("fee", fee.to_string())
-        .add_attribute("creator_fee", creator_share.to_string()))
+        .add_attribute("fee", fee.to_string()))
 }
 
 fn execute_receive(
@@ -668,17 +838,27 @@ fn execute_receive(
         return Err(ContractError::Std(StdError::generic_err("Zero token amount")));
     }
 
+    // Get per-curve constants (or legacy fallback)
+    let (_vx, vt, k, _toc, _tlp) = get_curve_constants(&curve);
+
     // Calculate XYZ out using constant product curve
     let (xyz_out, total_fee) = calculate_sell_cp(
         curve.tokens_sold,
         tokens_input,
         config.sell_fee_bps,
+        vt,
+        k,
     )?;
-    // Split fee: half burned, half to LP (matching existing behavior)
-    let fee_burned = total_fee / 2;
-    let fee_to_lp = total_fee - fee_burned;
+    // All fees stay in reserves (LP) — no burn, no creator share
 
-    // Check slippage
+    // Cap at available reserves if curve math exceeds actual balance
+    // (can happen for curves created before a curve-type migration)
+    let mut xyz_out = xyz_out;
+    if xyz_out > curve.xyz_reserves {
+        xyz_out = curve.xyz_reserves;
+    }
+
+    // Check slippage (after reserves cap so user sees realistic amount)
     if xyz_out < sell_msg.min_xyz_out.u128() {
         return Err(ContractError::SlippageExceeded {
             expected: sell_msg.min_xyz_out.u128(),
@@ -686,61 +866,30 @@ fn execute_receive(
         });
     }
 
-    // Creator gets share of the LP portion (not the burned portion)
-    let creator_share = fee_to_lp * (config.creator_fee_share_bps as u128) / 10000;
-    let actual_lp_share = fee_to_lp - creator_share;
-
-    // Check reserves (need enough for xyz_out + fee_burned + creator_share)
-    let total_xyz_leaving = xyz_out + fee_burned + creator_share;
-    if total_xyz_leaving > curve.xyz_reserves {
-        return Err(ContractError::InsufficientFunds {});
-    }
-
     // Update curve state
     curve.tokens_sold -= tokens_input;
-    curve.xyz_reserves -= total_xyz_leaving; // Remove xyz_out + fee_burned + creator_share
-    // actual_lp_share stays in reserves (already there)
-    curve.creator_fees_earned += creator_share;
+    curve.xyz_reserves -= xyz_out; // Only xyz_out leaves; fees stay in reserves
 
     // Save curve
     CURVES.save(deps.storage, &token_addr, &curve)?;
 
-    // Build messages
-    let mut messages: Vec<cosmwasm_std::CosmosMsg> = vec![];
-
     // Send XYZ to seller
-    messages.push(cosmwasm_std::CosmosMsg::Bank(BankMsg::Send {
+    let send_msg = BankMsg::Send {
         to_address: user_addr.to_string(),
         amount: vec![Coin {
             denom: "uxyz".to_string(),
             amount: Uint128::from(xyz_out),
         }],
-    }));
-
-    // Pay creator their share
-    if creator_share > 0 {
-        messages.push(cosmwasm_std::CosmosMsg::Bank(BankMsg::Send {
-            to_address: curve.creator.to_string(),
-            amount: vec![Coin {
-                denom: "uxyz".to_string(),
-                amount: Uint128::from(creator_share),
-            }],
-        }));
-    }
-
-    // Note: Tokens received are held by this contract (returned to curve supply)
-    // No need to do anything with them - they're already in our balance
+    };
 
     Ok(Response::new()
-        .add_messages(messages)
+        .add_message(send_msg)
         .add_attribute("action", "sell")
         .add_attribute("seller", user_addr.to_string())
         .add_attribute("token_address", token_addr.to_string())
         .add_attribute("tokens_input", tokens_input.to_string())
         .add_attribute("xyz_out", xyz_out.to_string())
-        .add_attribute("fee_burned", fee_burned.to_string())
-        .add_attribute("fee_to_lp", actual_lp_share.to_string())
-        .add_attribute("creator_fee", creator_share.to_string()))
+        .add_attribute("fee_to_lp", total_fee.to_string()))
 }
 
 /// AMM ExecuteMsg for cross-contract calls
@@ -750,8 +899,17 @@ pub enum AmmExecuteMsg {
         token_address: String,
         xyz_amount: Uint128,
         token_amount: Uint128,
+        /// Optional augmented fee in basis points (100 = 1%)
+        augmented_fee_bps: Option<u16>,
+        /// Optional target pool value in uxyz for augmented fee auto-disable
+        lp_target_uxyz: Option<String>,
     },
 }
+
+/// Default augmented fee for graduated pools: 1% (100 bps)
+const GRADUATION_AUGMENTED_FEE_BPS: u16 = 100;
+/// LP target multiplier: pool must grow 10x before augmented fee disables
+const GRADUATION_LP_TARGET_MULTIPLIER: u128 = 10;
 
 fn execute_graduate(
     deps: DepsMut,
@@ -799,13 +957,18 @@ fn execute_graduate(
         funds: vec![],
     };
 
-    // Create AMM pool with XYZ funds
+    // Create AMM pool with XYZ funds and augmented fee protection
+    let lp_target = xyz_for_pool
+        .checked_mul(GRADUATION_LP_TARGET_MULTIPLIER)
+        .unwrap_or(xyz_for_pool);
     let create_pool_msg = WasmMsg::Execute {
         contract_addr: config.amm_contract.to_string(),
         msg: to_binary(&AmmExecuteMsg::CreatePool {
             token_address: token_address.clone(),
             xyz_amount: Uint128::from(xyz_for_pool),
             token_amount: Uint128::from(tokens_remaining),
+            augmented_fee_bps: Some(GRADUATION_AUGMENTED_FEE_BPS),
+            lp_target_uxyz: Some(lp_target.to_string()),
         })?,
         funds: vec![Coin {
             denom: "uxyz".to_string(),
@@ -853,6 +1016,11 @@ fn reply_cw20_instantiate(
     PENDING_CURVE.remove(deps.storage);
 
     // Create curve with creation fee as initial XYZ reserves
+    let grad_threshold = if pending.graduation_threshold_uxyz > 0 {
+        Some(pending.graduation_threshold_uxyz)
+    } else {
+        None
+    };
     let curve = crate::state::Curve {
         token_address: token_address.clone(),
         metadata: pending.metadata,
@@ -862,7 +1030,12 @@ fn reply_cw20_instantiate(
         graduated: false,
         created_at: env.block.height,
         creator_fees_earned: 0,
-        graduation_threshold_uxyz: None,
+        graduation_threshold_uxyz: grad_threshold,
+        virtual_xyz_start: pending.virtual_xyz_start,
+        virtual_tokens_start: pending.virtual_tokens_start,
+        curve_k: pending.curve_k,
+        tokens_on_curve: pending.tokens_on_curve,
+        tokens_for_lp: pending.tokens_for_lp,
     };
 
     // Save curve indexed by token address
@@ -907,8 +1080,9 @@ fn query_curve(deps: Deps, token_address: String) -> StdResult<CurveResponse> {
     let curve = CURVES.load(deps.storage, &token_addr)
         .map_err(|_| StdError::not_found(format!("Curve for token {}", token_address)))?;
 
-    let tokens_remaining = TOKENS_ON_CURVE.saturating_sub(curve.tokens_sold);
-    let current_price = calculate_price_cp(curve.tokens_sold);
+    let (vx, vt, k, toc, tlp) = get_curve_constants(&curve);
+    let tokens_remaining = toc.saturating_sub(curve.tokens_sold);
+    let current_price = calculate_price_cp(curve.tokens_sold, vt, k);
 
     Ok(CurveResponse {
         token_address: curve.token_address,
@@ -920,6 +1094,10 @@ fn query_curve(deps: Deps, token_address: String) -> StdResult<CurveResponse> {
         current_price: format!("{:.6}", current_price as f64 / 1_000_000.0),
         graduated: curve.graduated,
         created_at: curve.created_at,
+        virtual_xyz_start: Uint128::from(vx),
+        virtual_tokens_start: Uint128::from(vt),
+        tokens_on_curve: Uint128::from(toc),
+        tokens_for_lp: Uint128::from(tlp),
     })
 }
 
@@ -943,8 +1121,9 @@ fn query_all_curves(
         .take(limit)
         .map(|item| {
             let (_, curve) = item?;
-            let tokens_remaining = TOKENS_ON_CURVE.saturating_sub(curve.tokens_sold);
-            let current_price = calculate_price_cp(curve.tokens_sold);
+            let (vx, vt, k, toc, tlp) = get_curve_constants(&curve);
+            let tokens_remaining = toc.saturating_sub(curve.tokens_sold);
+            let current_price = calculate_price_cp(curve.tokens_sold, vt, k);
             Ok(CurveResponse {
                 token_address: curve.token_address,
                 metadata: curve.metadata,
@@ -955,6 +1134,10 @@ fn query_all_curves(
                 current_price: format!("{:.6}", current_price as f64 / 1_000_000.0),
                 graduated: curve.graduated,
                 created_at: curve.created_at,
+                virtual_xyz_start: Uint128::from(vx),
+                virtual_tokens_start: Uint128::from(vt),
+                tokens_on_curve: Uint128::from(toc),
+                tokens_for_lp: Uint128::from(tlp),
             })
         })
         .collect::<StdResult<Vec<_>>>()?;
@@ -975,7 +1158,8 @@ fn query_progress(deps: Deps, token_address: String) -> StdResult<ProgressRespon
         100.0
     };
 
-    let tokens_remaining = TOKENS_ON_CURVE.saturating_sub(curve.tokens_sold);
+    let (_vx, _vt, _k, toc, _tlp) = get_curve_constants(&curve);
+    let tokens_remaining = toc.saturating_sub(curve.tokens_sold);
 
     Ok(ProgressResponse {
         token_address: curve.token_address,
@@ -1001,6 +1185,8 @@ fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
         target_graduation_usd: Uint128::from(config.target_graduation_usd),
         min_graduation_threshold: Uint128::from(config.min_graduation_threshold),
         max_graduation_threshold: Uint128::from(config.max_graduation_threshold),
+        target_starting_mc_usd: Uint128::from(config.target_starting_mc_usd),
+        target_raised_usd: Uint128::from(config.target_raised_usd),
     })
 }
 
@@ -1032,11 +1218,13 @@ fn query_simulate_buy(
         return Err(StdError::generic_err("Curve already graduated - use AMM for trading"));
     }
 
-    let (tokens_out, fee) = calculate_buy_cp(curve.tokens_sold, xyz_amount.u128(), config.buy_fee_bps)
+    let (_vx, vt, k, toc, _tlp) = get_curve_constants(&curve);
+
+    let (tokens_out, fee) = calculate_buy_cp(curve.tokens_sold, xyz_amount.u128(), config.buy_fee_bps, vt, k, toc)
         .map_err(|e| StdError::generic_err(format!("Simulation failed: {:?}", e)))?;
 
     let new_sold = curve.tokens_sold + tokens_out;
-    let new_price = calculate_price_cp(new_sold);
+    let new_price = calculate_price_cp(new_sold, vt, k);
 
     Ok(SimulateBuyResponse {
         tokens_out: Uint128::from(tokens_out),
@@ -1059,98 +1247,69 @@ fn query_simulate_sell(
         return Err(StdError::generic_err("Curve already graduated - use AMM for trading"));
     }
 
+    let (_vx, vt, k, _toc, _tlp) = get_curve_constants(&curve);
+
     let (xyz_out, total_fee) = calculate_sell_cp(
         curve.tokens_sold,
         token_amount.u128(),
         config.sell_fee_bps,
+        vt,
+        k,
     ).map_err(|e| StdError::generic_err(format!("Simulation failed: {:?}", e)))?;
 
-    let fee_burned = total_fee / 2;
+    // Cap at available reserves (matches execute path behavior)
+    let mut xyz_out = xyz_out;
+    if xyz_out > curve.xyz_reserves {
+        xyz_out = curve.xyz_reserves;
+    }
+
     let new_sold = curve.tokens_sold - token_amount.u128();
-    let new_price = calculate_price_cp(new_sold);
+    let new_price = calculate_price_cp(new_sold, vt, k);
 
     Ok(SimulateSellResponse {
         xyz_out: Uint128::from(xyz_out),
         fee_amount: Uint128::from(total_fee),
-        burned_amount: Uint128::from(fee_burned),
+        burned_amount: Uint128::zero(),
         new_price: format!("{:.6}", new_price as f64 / 1_000_000.0),
     })
-}
-
-/// Old config schema (pre-v0.2.0) without admin/oracle fields
-#[cw_serde]
-struct OldConfig {
-    pub amm_contract: cosmwasm_std::Addr,
-    pub cw20_code_id: u64,
-    pub creation_fee: u128,
-    pub graduation_threshold: u128,
-    pub buy_fee_bps: u16,
-    pub sell_fee_bps: u16,
-    pub creator_fee_share_bps: u16,
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn migrate(
     deps: DepsMut,
-    env: Env,
-    msg: MigrateMsg,
+    _env: Env,
+    _msg: MigrateMsg,
 ) -> Result<Response, ContractError> {
-    let admin = deps.api.addr_validate(&msg.admin)?;
-
-    // Try loading new config first; if it fails, load old config and convert
-    let config = match CONFIG.load(deps.storage) {
-        Ok(mut existing) => {
-            existing.admin = admin;
-            existing.target_graduation_usd = msg.target_graduation_usd.u128();
-            existing.min_graduation_threshold = msg.min_graduation_threshold.u128();
-            existing.max_graduation_threshold = msg.max_graduation_threshold.u128();
-            existing
-        }
-        Err(_) => {
-            // Load old config format
-            const OLD_CONFIG: cw_storage_plus::Item<OldConfig> = cw_storage_plus::Item::new("config");
-            let old = OLD_CONFIG.load(deps.storage)?;
-            Config {
-                amm_contract: old.amm_contract,
-                cw20_code_id: old.cw20_code_id,
-                creation_fee: old.creation_fee,
-                graduation_threshold: old.graduation_threshold,
-                buy_fee_bps: old.buy_fee_bps,
-                sell_fee_bps: old.sell_fee_bps,
-                creator_fee_share_bps: old.creator_fee_share_bps,
-                admin,
-                target_graduation_usd: msg.target_graduation_usd.u128(),
-                min_graduation_threshold: msg.min_graduation_threshold.u128(),
-                max_graduation_threshold: msg.max_graduation_threshold.u128(),
-            }
-        }
-    };
-
-    if config.min_graduation_threshold > config.max_graduation_threshold {
-        return Err(ContractError::InvalidThresholdBounds {
-            min: config.min_graduation_threshold,
-            max: config.max_graduation_threshold,
-        });
-    }
-
+    // Load existing config and update fee structure
+    let mut config = CONFIG.load(deps.storage)?;
+    config.target_starting_mc_usd = 1_000_000_000;  // $1,000
+    // target_graduation_usd is already set from previous migration ($10K)
+    config.target_raised_usd = 2_000_000_000;       // $2,000
+    config.creator_fee_share_bps = 0;                // No creator fees — all to LP
+    config.sell_fee_bps = 250;                       // 2.5% sell fee (was 3.5%)
     CONFIG.save(deps.storage, &config)?;
 
-    // Set initial oracle price if provided
-    if !msg.initial_xyz_usd_price.is_zero() {
-        let oracle = OracleState {
-            xyz_usd_price: msg.initial_xyz_usd_price.u128(),
-            last_update_height: env.block.height,
-            last_update_timestamp: env.block.time.seconds(),
-        };
-        ORACLE_STATE.save(deps.storage, &oracle)?;
+    // Backfill existing curves with old hardcoded constants
+    let all_keys: Vec<_> = CURVES
+        .range(deps.storage, None, None, cosmwasm_std::Order::Ascending)
+        .map(|r| r.map(|(k, v)| (k.clone(), v)))
+        .collect::<Result<_, _>>()?;
+    for (key, mut curve) in all_keys {
+        if curve.curve_k == 0 {
+            curve.virtual_xyz_start = VIRTUAL_XYZ_START;
+            curve.virtual_tokens_start = VIRTUAL_TOKENS_START;
+            curve.curve_k = K;
+            curve.tokens_on_curve = TOKENS_ON_CURVE;
+            curve.tokens_for_lp = TOKENS_FOR_LP;
+            CURVES.save(deps.storage, &key, &curve)?;
+        }
     }
 
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
 
     Ok(Response::new()
         .add_attribute("action", "migrate")
-        .add_attribute("version", CONTRACT_VERSION)
-        .add_attribute("admin", msg.admin))
+        .add_attribute("version", CONTRACT_VERSION))
 }
 
 #[cfg(test)]
@@ -1256,21 +1415,20 @@ mod tests {
 
     #[test]
     fn test_cp_price_at_zero_sold() {
-        let price = calculate_price_cp(0);
+        let price = calculate_price_cp(0, VIRTUAL_TOKENS_START, K);
         // price per whole token (10^6 base units) = K * 10^6 / VIRTUAL_TOKENS_START^2
         let expected = K * 1_000_000 / (VIRTUAL_TOKENS_START * VIRTUAL_TOKENS_START);
         assert_eq!(price, expected, "Price at zero sold should match formula");
-        // Starting price at $0.000075/XYZ should give ~$2,432 FDV
-        // Price is ~324,396 uxyz per whole token (~0.324 XYZ)
-        assert!(price > 100_000 && price < 1_000_000, "Starting price should be reasonable, got {}", price);
+        // Sanity: should be a small positive number (around 324,324 uxyz with current constants)
+        assert!(price > 0 && price < 1_000_000, "Starting price should be reasonable");
     }
 
     #[test]
     fn test_cp_price_increases_monotonically() {
-        let price_0 = calculate_price_cp(0);
-        let price_10pct = calculate_price_cp(TOKENS_ON_CURVE / 10);
-        let price_50pct = calculate_price_cp(TOKENS_ON_CURVE / 2);
-        let price_90pct = calculate_price_cp(TOKENS_ON_CURVE * 9 / 10);
+        let price_0 = calculate_price_cp(0, VIRTUAL_TOKENS_START, K);
+        let price_10pct = calculate_price_cp(TOKENS_ON_CURVE / 10, VIRTUAL_TOKENS_START, K);
+        let price_50pct = calculate_price_cp(TOKENS_ON_CURVE / 2, VIRTUAL_TOKENS_START, K);
+        let price_90pct = calculate_price_cp(TOKENS_ON_CURVE * 9 / 10, VIRTUAL_TOKENS_START, K);
 
         assert!(price_0 < price_10pct, "Price should increase at 10%");
         assert!(price_10pct < price_50pct, "Price should increase at 50%");
@@ -1279,8 +1437,8 @@ mod tests {
 
     #[test]
     fn test_cp_price_multiplier_at_graduation() {
-        let start_price = calculate_price_cp(0);
-        let grad_price = calculate_price_cp(TOKENS_ON_CURVE);
+        let start_price = calculate_price_cp(0, VIRTUAL_TOKENS_START, K);
+        let grad_price = calculate_price_cp(TOKENS_ON_CURVE, VIRTUAL_TOKENS_START, K);
         let multiplier = grad_price / start_price;
 
         // Should be approximately 14.6x (between 14 and 15)
@@ -1294,7 +1452,7 @@ mod tests {
     #[test]
     fn test_cp_buy_basic() {
         // Buy with 1 XYZ, 0.5% fee
-        let (tokens_out, fee) = calculate_buy_cp(0, 1_000_000, 50).unwrap();
+        let (tokens_out, fee) = calculate_buy_cp(0, 1_000_000, 50, VIRTUAL_TOKENS_START, K, TOKENS_ON_CURVE).unwrap();
 
         // Fee should be 0.5% of 1_000_000 = 5000
         assert_eq!(fee, 5000, "Fee should be 0.5%");
@@ -1312,8 +1470,8 @@ mod tests {
 
     #[test]
     fn test_cp_buy_fee_deducted_before_curve() {
-        let (tokens_out_with_fee, fee) = calculate_buy_cp(0, 10_000_000, 50).unwrap();
-        let (tokens_out_no_fee, _) = calculate_buy_cp(0, 10_000_000, 0).unwrap();
+        let (tokens_out_with_fee, fee) = calculate_buy_cp(0, 10_000_000, 50, VIRTUAL_TOKENS_START, K, TOKENS_ON_CURVE).unwrap();
+        let (tokens_out_no_fee, _) = calculate_buy_cp(0, 10_000_000, 0, VIRTUAL_TOKENS_START, K, TOKENS_ON_CURVE).unwrap();
 
         assert!(
             tokens_out_with_fee < tokens_out_no_fee,
@@ -1327,7 +1485,7 @@ mod tests {
         // Try to buy with an enormous amount of XYZ
         // tokens_out should be capped at TOKENS_ON_CURVE
         let huge_xyz = 1_000_000_000_000_000u128; // 1 billion XYZ
-        let (tokens_out, _) = calculate_buy_cp(0, huge_xyz, 0).unwrap();
+        let (tokens_out, _) = calculate_buy_cp(0, huge_xyz, 0, VIRTUAL_TOKENS_START, K, TOKENS_ON_CURVE).unwrap();
 
         assert!(
             tokens_out <= TOKENS_ON_CURVE,
@@ -1340,7 +1498,7 @@ mod tests {
     #[test]
     fn test_cp_buy_returns_zero_tokens_error() {
         // When all curve tokens are sold, buying should fail with NoTokensAvailable
-        let result = calculate_buy_cp(TOKENS_ON_CURVE, 1_000_000, 0);
+        let result = calculate_buy_cp(TOKENS_ON_CURVE, 1_000_000, 0, VIRTUAL_TOKENS_START, K, TOKENS_ON_CURVE);
         assert!(
             result.is_err(),
             "Buying when all curve tokens are sold should return error"
@@ -1348,7 +1506,7 @@ mod tests {
 
         // When fee consumes entire input (xyz_after_fee = 0), should fail
         // fee_bps=10000 means 100% fee, so xyz_after_fee = 0
-        let result = calculate_buy_cp(0, 100, 10000);
+        let result = calculate_buy_cp(0, 100, 10000, VIRTUAL_TOKENS_START, K, TOKENS_ON_CURVE);
         assert!(
             result.is_err(),
             "Buying with 100% fee should return error"
@@ -1359,12 +1517,12 @@ mod tests {
     fn test_cp_sell_basic() {
         // First buy some tokens (use 0% fee for simpler math)
         let buy_xyz = 100_000_000_000u128; // 100,000 XYZ
-        let (tokens_bought, _) = calculate_buy_cp(0, buy_xyz, 0).unwrap();
+        let (tokens_bought, _) = calculate_buy_cp(0, buy_xyz, 0, VIRTUAL_TOKENS_START, K, TOKENS_ON_CURVE).unwrap();
         assert!(tokens_bought > 0, "Should buy some tokens");
 
         // Sell half back with 3.5% fee
         let half = tokens_bought / 2;
-        let (xyz_out, fee) = calculate_sell_cp(tokens_bought, half, 350).unwrap();
+        let (xyz_out, fee) = calculate_sell_cp(tokens_bought, half, 350, VIRTUAL_TOKENS_START, K).unwrap();
 
         assert!(xyz_out > 0, "Should receive XYZ from sell");
         assert!(fee > 0, "Should have a sell fee");
@@ -1374,8 +1532,8 @@ mod tests {
     fn test_cp_sell_returns_less_than_buy_paid() {
         // Buy with 0% fee, sell with 0% fee -- should get same XYZ back (roundtrip)
         let buy_xyz = 1_000_000_000u128; // 1000 XYZ
-        let (tokens_out, _) = calculate_buy_cp(0, buy_xyz, 0).unwrap();
-        let (xyz_back, _) = calculate_sell_cp(tokens_out, tokens_out, 0).unwrap();
+        let (tokens_out, _) = calculate_buy_cp(0, buy_xyz, 0, VIRTUAL_TOKENS_START, K, TOKENS_ON_CURVE).unwrap();
+        let (xyz_back, _) = calculate_sell_cp(tokens_out, tokens_out, 0, VIRTUAL_TOKENS_START, K).unwrap();
 
         // Should be equal within 1 uxyz rounding
         let diff = if xyz_back > buy_xyz {
@@ -1393,11 +1551,11 @@ mod tests {
     #[test]
     fn test_cp_sell_with_fee() {
         // Buy some tokens first
-        let (tokens_bought, _) = calculate_buy_cp(0, 50_000_000_000u128, 0).unwrap();
+        let (tokens_bought, _) = calculate_buy_cp(0, 50_000_000_000u128, 0, VIRTUAL_TOKENS_START, K, TOKENS_ON_CURVE).unwrap();
         let sell_amount = tokens_bought / 4;
 
-        let (xyz_no_fee, _) = calculate_sell_cp(tokens_bought, sell_amount, 0).unwrap();
-        let (xyz_with_fee, fee) = calculate_sell_cp(tokens_bought, sell_amount, 350).unwrap();
+        let (xyz_no_fee, _) = calculate_sell_cp(tokens_bought, sell_amount, 0, VIRTUAL_TOKENS_START, K).unwrap();
+        let (xyz_with_fee, fee) = calculate_sell_cp(tokens_bought, sell_amount, 350, VIRTUAL_TOKENS_START, K).unwrap();
 
         assert!(
             xyz_with_fee < xyz_no_fee,
@@ -1419,15 +1577,15 @@ mod tests {
 
     #[test]
     fn test_cp_sell_more_than_sold_fails() {
-        let result = calculate_sell_cp(1000, 2000, 350);
+        let result = calculate_sell_cp(1000, 2000, 350, VIRTUAL_TOKENS_START, K);
         assert!(result.is_err(), "Selling more than sold should fail");
     }
 
     #[test]
     fn test_cp_sell_all_tokens() {
         // Buy tokens, then sell ALL of them back
-        let (tokens_bought, _) = calculate_buy_cp(0, 10_000_000_000u128, 0).unwrap();
-        let result = calculate_sell_cp(tokens_bought, tokens_bought, 350);
+        let (tokens_bought, _) = calculate_buy_cp(0, 10_000_000_000u128, 0, VIRTUAL_TOKENS_START, K, TOKENS_ON_CURVE).unwrap();
+        let result = calculate_sell_cp(tokens_bought, tokens_bought, 350, VIRTUAL_TOKENS_START, K);
         assert!(result.is_ok(), "Selling all tokens should succeed");
 
         let (xyz_out, _) = result.unwrap();
@@ -1438,8 +1596,8 @@ mod tests {
     fn test_cp_buy_sell_roundtrip_conservation() {
         // Buy with 1000 XYZ at 0% fee, sell back at 0% fee
         let buy_xyz = 1_000_000_000u128; // 1000 XYZ
-        let (tokens_out, _) = calculate_buy_cp(0, buy_xyz, 0).unwrap();
-        let (xyz_back, _) = calculate_sell_cp(tokens_out, tokens_out, 0).unwrap();
+        let (tokens_out, _) = calculate_buy_cp(0, buy_xyz, 0, VIRTUAL_TOKENS_START, K, TOKENS_ON_CURVE).unwrap();
+        let (xyz_back, _) = calculate_sell_cp(tokens_out, tokens_out, 0, VIRTUAL_TOKENS_START, K).unwrap();
 
         let diff = if xyz_back > buy_xyz {
             xyz_back - buy_xyz
@@ -1461,7 +1619,7 @@ mod tests {
         let xyz_raised = virtual_xyz_at_grad - VIRTUAL_XYZ_START;
 
         // Verify by buying all tokens with 0% fee
-        let (tokens_out, _) = calculate_buy_cp(0, xyz_raised, 0).unwrap();
+        let (tokens_out, _) = calculate_buy_cp(0, xyz_raised, 0, VIRTUAL_TOKENS_START, K, TOKENS_ON_CURVE).unwrap();
 
         // tokens_out should be close to TOKENS_ON_CURVE (within integer division rounding)
         let diff = if tokens_out > TOKENS_ON_CURVE {
@@ -1477,9 +1635,9 @@ mod tests {
 
         // xyz_raised should be positive and reasonable
         assert!(xyz_raised > 0, "Should raise positive XYZ");
-        // With new constants (~34.8M virtual XYZ): ~98.6M XYZ raised at graduation
+        // With current constants: ~98.6M XYZ raised
         assert!(
-            xyz_raised > 90_000_000_000_000 && xyz_raised < 110_000_000_000_000,
+            xyz_raised > 50_000_000_000_000 && xyz_raised < 200_000_000_000_000,
             "XYZ raised should be in reasonable range, got {}",
             xyz_raised
         );
@@ -1493,7 +1651,7 @@ mod tests {
     fn test_buy_near_curve_cap() {
         // Almost all tokens sold, small buy should work and be capped
         let tokens_sold = TOKENS_ON_CURVE - 1_000_000; // 1 token remaining
-        let (tokens_out, _) = calculate_buy_cp(tokens_sold, 100_000_000_000, 0).unwrap();
+        let (tokens_out, _) = calculate_buy_cp(tokens_sold, 100_000_000_000, 0, VIRTUAL_TOKENS_START, K, TOKENS_ON_CURVE).unwrap();
         // Should be capped at the remaining 1_000_000
         assert!(
             tokens_out <= 1_000_000,
@@ -1505,7 +1663,7 @@ mod tests {
     #[test]
     fn test_buy_at_curve_cap() {
         // All curve tokens sold, any buy should fail
-        let result = calculate_buy_cp(TOKENS_ON_CURVE, 1_000_000, 0);
+        let result = calculate_buy_cp(TOKENS_ON_CURVE, 1_000_000, 0, VIRTUAL_TOKENS_START, K, TOKENS_ON_CURVE);
         assert!(
             result.is_err(),
             "Buying when curve is at cap should fail with NoTokensAvailable"
@@ -1518,23 +1676,24 @@ mod tests {
 
     #[test]
     fn test_compute_dynamic_threshold_basic() {
-        // $2/XYZ, $10K target => 5M XYZ = 5_000_000_000_000 uxyz
+        // $0.0001/XYZ, $2K raised => 20M XYZ = 20_000_000_000_000 uxyz
+        // raw = 2_000_000_000 * 10^6 / 100 = 20_000_000_000_000
         let threshold = compute_dynamic_threshold(
-            2_000_000,           // $2.00 in micro-USD
-            10_000_000_000,      // $10K in micro-USD
+            100,                 // $0.0001 in micro-USD
+            2_000_000_000,       // $2K raised in micro-USD
             100_000_000_000,     // min: 100K XYZ
             50_000_000_000_000,  // max: 50M XYZ
             5_000_000_000_000,   // fallback: 5M XYZ
         );
-        assert_eq!(threshold, 5_000_000_000_000);
+        assert_eq!(threshold, 20_000_000_000_000);
     }
 
     #[test]
     fn test_compute_dynamic_threshold_low_price_clamps_to_max() {
-        // $0.001/XYZ => raw = 10B XYZ, clamped to max 50M
+        // $0.00002/XYZ, $2K raised => raw = 100M XYZ, clamped to max 50M
         let threshold = compute_dynamic_threshold(
-            1_000,               // $0.001
-            10_000_000_000,      // $10K
+            20,                  // $0.00002
+            2_000_000_000,       // $2K raised
             100_000_000_000,     // min: 100K XYZ
             50_000_000_000_000,  // max: 50M XYZ
             5_000_000_000_000,
@@ -1544,10 +1703,10 @@ mod tests {
 
     #[test]
     fn test_compute_dynamic_threshold_high_price_clamps_to_min() {
-        // $1000/XYZ => raw = 10K XYZ, clamped to min 100K
+        // $1000/XYZ, $2K raised => raw = 2K XYZ = 2_000_000_000 uxyz, clamped to min 100K XYZ
         let threshold = compute_dynamic_threshold(
             1_000_000_000,       // $1000
-            10_000_000_000,      // $10K
+            2_000_000_000,       // $2K raised
             100_000_000_000,     // min: 100K XYZ
             50_000_000_000_000,  // max: 50M XYZ
             5_000_000_000_000,
@@ -1559,7 +1718,7 @@ mod tests {
     fn test_compute_dynamic_threshold_zero_price_uses_fallback() {
         let threshold = compute_dynamic_threshold(
             0,                   // no price
-            10_000_000_000,
+            2_000_000_000,
             100_000_000_000,
             50_000_000_000_000,
             5_000_000_000_000,   // fallback
@@ -1569,25 +1728,25 @@ mod tests {
 
     #[test]
     fn test_compute_dynamic_threshold_at_boundaries() {
-        // $100/XYZ => raw = 100K XYZ = exactly min
+        // $20/XYZ, $2K raised => raw = 100K XYZ = exactly min
         let threshold = compute_dynamic_threshold(
-            100_000_000,         // $100
-            10_000_000_000,      // $10K
+            20_000_000,          // $20
+            2_000_000_000,       // $2K raised
             100_000_000_000,     // min: 100K XYZ
             50_000_000_000_000,
             5_000_000_000_000,
         );
         assert_eq!(threshold, 100_000_000_000); // exactly at min
 
-        // $0.20/XYZ => raw = 50M XYZ = exactly max
+        // $0.00004/XYZ, $2K raised => raw = 50B XYZ, clamped to max 50M
         let threshold2 = compute_dynamic_threshold(
-            200_000,             // $0.20
-            10_000_000_000,      // $10K
+            40,                  // $0.00004 = 40 micro-USD
+            2_000_000_000,       // $2K raised
             100_000_000_000,
             50_000_000_000_000,  // max: 50M XYZ
             5_000_000_000_000,
         );
-        assert_eq!(threshold2, 50_000_000_000_000); // exactly at max
+        assert_eq!(threshold2, 50_000_000_000_000); // clamped to max
     }
 
     #[test]
@@ -1655,6 +1814,8 @@ mod tests {
             target_graduation_usd: 10_000_000_000,
             min_graduation_threshold: 100_000_000_000,
             max_graduation_threshold: 50_000_000_000_000,
+            target_starting_mc_usd: 1_000_000_000,
+            target_raised_usd: 2_000_000_000,
         }
     }
 
@@ -1724,9 +1885,8 @@ mod tests {
         let info = mock_info("not_admin", &[]);
         let result = execute_update_config(
             deps.as_mut(), info,
-            None, None,
             Some(Uint128::from(20_000_000_000u128)),
-            None, None,
+            None, None, None, None,
         );
         assert!(result.is_err());
         match result.unwrap_err() {
@@ -1745,9 +1905,10 @@ mod tests {
         // Set min > max -- should fail
         let result = execute_update_config(
             deps.as_mut(), info,
-            None, None, None,
+            None,
             Some(Uint128::from(100_000_000_000_000u128)), // min = 100M XYZ
             Some(Uint128::from(1_000_000_000u128)),       // max = 1K XYZ
+            None, None,
         );
         assert!(result.is_err());
         match result.unwrap_err() {
@@ -1765,9 +1926,8 @@ mod tests {
         let info = mock_info("admin", &[]);
         let result = execute_update_config(
             deps.as_mut(), info,
-            None, None,
             Some(Uint128::from(20_000_000_000u128)),  // $20K target
-            None, None,
+            None, None, None, None,
         );
         assert!(result.is_ok());
 
@@ -1775,6 +1935,32 @@ mod tests {
         assert_eq!(updated.target_graduation_usd, 20_000_000_000);
         // Other fields unchanged
         assert_eq!(updated.min_graduation_threshold, 100_000_000_000);
+    }
+
+    /// Helper: create a test Curve for integration tests
+    fn test_curve() -> crate::state::Curve {
+        crate::state::Curve {
+            token_address: Addr::unchecked("token1"),
+            metadata: TokenMetadata {
+                name: "Test".to_string(),
+                symbol: "TST".to_string(),
+                image: "".to_string(),
+                description: "".to_string(),
+                social_links: vec![],
+            },
+            creator: Addr::unchecked("creator"),
+            tokens_sold: 0,
+            xyz_reserves: 0,
+            graduated: false,
+            created_at: 0,
+            creator_fees_earned: 0,
+            graduation_threshold_uxyz: None,
+            virtual_xyz_start: 0,
+            virtual_tokens_start: 0,
+            curve_k: 0,
+            tokens_on_curve: 0,
+            tokens_for_lp: 0,
+        }
     }
 
     #[test]
@@ -1791,27 +1977,13 @@ mod tests {
         };
         ORACLE_STATE.save(deps.as_mut().storage, &oracle).unwrap();
 
-        // New curve (None threshold) => effective = max(global_fallback=5M, computed=5M) = 5M
-        let curve = crate::state::Curve {
-            token_address: Addr::unchecked("token1"),
-            metadata: TokenMetadata {
-                name: "Test".to_string(),
-                symbol: "TST".to_string(),
-                image: "".to_string(),
-                description: "".to_string(),
-                social_links: vec![],
-            },
-            creator: Addr::unchecked("creator"),
-            tokens_sold: 0,
-            xyz_reserves: 0,
-            graduated: false,
-            created_at: 0,
-            creator_fees_earned: 0,
-            graduation_threshold_uxyz: None,
-        };
+        // New curve (None threshold)
+        // computed = target_raised_usd * 10^6 / price = 2e9 * 10^6 / 2e6 = 1e9 = 1_000_000_000_000
+        // effective = max(global_fallback=5M, computed=1M) = 5M
+        let curve = test_curve();
 
         let threshold = load_effective_threshold(deps.as_ref().storage, &config, &curve);
-        assert_eq!(threshold, 5_000_000_000_000); // $2/XYZ => 5M XYZ
+        assert_eq!(threshold, 5_000_000_000_000); // max(5M fallback, 1M computed) = 5M
     }
 
     #[test]
@@ -1820,7 +1992,7 @@ mod tests {
         let config = test_config();
         CONFIG.save(deps.as_mut().storage, &config).unwrap();
 
-        // Set oracle price to $2/XYZ => computed = 5M
+        // Set oracle price to $2/XYZ => computed = 1M XYZ
         let oracle = OracleState {
             xyz_usd_price: 2_000_000,
             last_update_height: 100,
@@ -1829,26 +2001,11 @@ mod tests {
         ORACLE_STATE.save(deps.as_mut().storage, &oracle).unwrap();
 
         // Curve with stored threshold of 8M (previously ratcheted)
-        let curve = crate::state::Curve {
-            token_address: Addr::unchecked("token1"),
-            metadata: TokenMetadata {
-                name: "Test".to_string(),
-                symbol: "TST".to_string(),
-                image: "".to_string(),
-                description: "".to_string(),
-                social_links: vec![],
-            },
-            creator: Addr::unchecked("creator"),
-            tokens_sold: 0,
-            xyz_reserves: 0,
-            graduated: false,
-            created_at: 0,
-            creator_fees_earned: 0,
-            graduation_threshold_uxyz: Some(8_000_000_000_000), // 8M stored
-        };
+        let mut curve = test_curve();
+        curve.graduation_threshold_uxyz = Some(8_000_000_000_000);
 
         let threshold = load_effective_threshold(deps.as_ref().storage, &config, &curve);
-        assert_eq!(threshold, 8_000_000_000_000); // ratchet: max(8M, 5M) = 8M
+        assert_eq!(threshold, 8_000_000_000_000); // ratchet: max(8M, 1M) = 8M
     }
 
     #[test]
@@ -1858,27 +2015,203 @@ mod tests {
         CONFIG.save(deps.as_mut().storage, &config).unwrap();
         // No ORACLE_STATE saved => price = 0 => fallback
 
-        let curve = crate::state::Curve {
-            token_address: Addr::unchecked("token1"),
-            metadata: TokenMetadata {
-                name: "Test".to_string(),
-                symbol: "TST".to_string(),
-                image: "".to_string(),
-                description: "".to_string(),
-                social_links: vec![],
-            },
-            creator: Addr::unchecked("creator"),
-            tokens_sold: 0,
-            xyz_reserves: 0,
-            graduated: false,
-            created_at: 0,
-            creator_fees_earned: 0,
-            graduation_threshold_uxyz: None,
-        };
+        let curve = test_curve();
 
         let threshold = load_effective_threshold(deps.as_ref().storage, &config, &curve);
         // No oracle => price=0 => fallback = config.graduation_threshold = 5M
         // effective_threshold_pure(None, 5M, 5M) = max(5M, 5M) = 5M
         assert_eq!(threshold, 5_000_000_000_000);
+    }
+
+    // ===========================================
+    // Integer Square Root Tests
+    // ===========================================
+
+    #[test]
+    fn test_isqrt_perfect_squares() {
+        assert_eq!(isqrt(0), 0);
+        assert_eq!(isqrt(1), 1);
+        assert_eq!(isqrt(4), 2);
+        assert_eq!(isqrt(9), 3);
+        assert_eq!(isqrt(100), 10);
+        assert_eq!(isqrt(1_000_000), 1_000);
+        assert_eq!(isqrt(1_000_000_000_000), 1_000_000);
+    }
+
+    #[test]
+    fn test_isqrt_non_perfect() {
+        // isqrt floors to nearest integer
+        assert_eq!(isqrt(2), 1);
+        assert_eq!(isqrt(3), 1);
+        assert_eq!(isqrt(5), 2);
+        assert_eq!(isqrt(10), 3);
+    }
+
+    // ===========================================
+    // compute_curve_params Tests
+    // ===========================================
+
+    #[test]
+    fn test_compute_curve_params_at_0001() {
+        // P = $0.0001 = 100 micro-USD
+        let params = compute_curve_params(
+            100,                 // xyz price = 100 micro-USD
+            1_000_000_000,       // starting MC = $1K
+            10_000_000_000,      // graduation MC = $10K
+            2_000_000_000,       // raised = $2K
+        ).unwrap();
+
+        // tokens_on_curve should be ~63.25M tokens = ~63.25e12 utokens
+        assert!(
+            params.tokens_on_curve > 60_000_000_000_000 && params.tokens_on_curve < 70_000_000_000_000,
+            "tokens_on_curve should be ~63.25M utokens, got {}",
+            params.tokens_on_curve
+        );
+
+        // tokens_for_lp = TOTAL_SUPPLY - tokens_on_curve
+        assert_eq!(params.tokens_on_curve + params.tokens_for_lp, TOTAL_SUPPLY);
+
+        // virtual_tokens should be ~92.5M utokens
+        assert!(
+            params.virtual_tokens_start > 85_000_000_000_000 && params.virtual_tokens_start < 100_000_000_000_000,
+            "virtual_tokens_start should be ~92.5M utokens, got {}",
+            params.virtual_tokens_start
+        );
+
+        // virtual_xyz: at P=$0.0001, should be ~9.25M XYZ = ~9.25e12 uxyz
+        assert!(
+            params.virtual_xyz_start > 8_000_000_000_000 && params.virtual_xyz_start < 11_000_000_000_000,
+            "virtual_xyz_start should be ~9.25M uxyz, got {}",
+            params.virtual_xyz_start
+        );
+
+        // K = vx * vt
+        assert_eq!(params.curve_k, params.virtual_xyz_start * params.virtual_tokens_start);
+    }
+
+    #[test]
+    fn test_compute_curve_params_at_00005() {
+        // P = $0.00005 = 50 micro-USD
+        let params = compute_curve_params(
+            50,                  // xyz price = 50 micro-USD
+            1_000_000_000,       // starting MC = $1K
+            10_000_000_000,      // graduation MC = $10K
+            2_000_000_000,       // raised = $2K
+        ).unwrap();
+
+        // tokens_on_curve stays the same (~63.25M) regardless of price
+        assert!(
+            params.tokens_on_curve > 60_000_000_000_000 && params.tokens_on_curve < 70_000_000_000_000,
+            "tokens_on_curve should be ~63.25M utokens at any price, got {}",
+            params.tokens_on_curve
+        );
+
+        // virtual_xyz doubles when price halves (~18.5M XYZ)
+        assert!(
+            params.virtual_xyz_start > 16_000_000_000_000 && params.virtual_xyz_start < 22_000_000_000_000,
+            "virtual_xyz_start should be ~18.5M uxyz, got {}",
+            params.virtual_xyz_start
+        );
+    }
+
+    #[test]
+    fn test_compute_curve_params_rejects_zero_price() {
+        let result = compute_curve_params(0, 1_000_000_000, 10_000_000_000, 2_000_000_000);
+        assert!(result.is_err());
+        match result.unwrap_err() {
+            ContractError::OraclePriceRequired {} => {},
+            e => panic!("Expected OraclePriceRequired, got {:?}", e),
+        }
+    }
+
+    #[test]
+    fn test_compute_curve_params_rejects_invalid_mc_ratio() {
+        // graduation MC <= starting MC
+        let result = compute_curve_params(100, 10_000_000_000, 1_000_000_000, 2_000_000_000);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_compute_curve_params_legacy_fallback() {
+        // Legacy curve (curve_k = 0) should use old hardcoded constants
+        let curve = test_curve();
+        let (vx, vt, k, toc, tlp) = get_curve_constants(&curve);
+        assert_eq!(vx, VIRTUAL_XYZ_START);
+        assert_eq!(vt, VIRTUAL_TOKENS_START);
+        assert_eq!(k, K);
+        assert_eq!(toc, TOKENS_ON_CURVE);
+        assert_eq!(tlp, TOKENS_FOR_LP);
+    }
+
+    #[test]
+    fn test_compute_curve_params_per_curve_used() {
+        // Curve with per-curve params should use them
+        let mut curve = test_curve();
+        curve.virtual_xyz_start = 100;
+        curve.virtual_tokens_start = 200;
+        curve.curve_k = 20000;
+        curve.tokens_on_curve = 300;
+        curve.tokens_for_lp = 400;
+
+        let (vx, vt, k, toc, tlp) = get_curve_constants(&curve);
+        assert_eq!(vx, 100);
+        assert_eq!(vt, 200);
+        assert_eq!(k, 20000);
+        assert_eq!(toc, 300);
+        assert_eq!(tlp, 400);
+    }
+
+    #[test]
+    fn test_compute_curve_params_buy_sell_roundtrip() {
+        // Verify buy/sell roundtrip with dynamically computed params
+        let params = compute_curve_params(
+            100,                 // $0.0001
+            1_000_000_000,       // $1K starting MC
+            10_000_000_000,      // $10K graduation MC
+            2_000_000_000,       // $2K raised
+        ).unwrap();
+
+        let buy_xyz = 1_000_000_000u128; // 1000 XYZ
+        let (tokens_out, _) = calculate_buy_cp(
+            0, buy_xyz, 0,
+            params.virtual_tokens_start, params.curve_k, params.tokens_on_curve,
+        ).unwrap();
+        let (xyz_back, _) = calculate_sell_cp(
+            tokens_out, tokens_out, 0,
+            params.virtual_tokens_start, params.curve_k,
+        ).unwrap();
+
+        let diff = if xyz_back > buy_xyz { xyz_back - buy_xyz } else { buy_xyz - xyz_back };
+        assert!(
+            diff <= 1,
+            "Roundtrip with dynamic params should conserve XYZ, diff={}",
+            diff
+        );
+    }
+
+    #[test]
+    fn test_compute_curve_params_price_multiplier() {
+        // At graduation, price should be ~R times starting price
+        let params = compute_curve_params(
+            100,                 // $0.0001
+            1_000_000_000,       // $1K starting MC
+            10_000_000_000,      // $10K graduation MC (R=10)
+            2_000_000_000,       // $2K raised
+        ).unwrap();
+
+        let start_price = calculate_price_cp(0, params.virtual_tokens_start, params.curve_k);
+        let grad_price = calculate_price_cp(
+            params.tokens_on_curve,
+            params.virtual_tokens_start,
+            params.curve_k,
+        );
+        let multiplier = grad_price / start_price;
+
+        // Should be approximately 10x (R=10)
+        assert!(
+            multiplier >= 9 && multiplier <= 11,
+            "Price multiplier should be ~10x (R=10), got {}x",
+            multiplier
+        );
     }
 }

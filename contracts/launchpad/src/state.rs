@@ -26,6 +26,12 @@ pub struct Config {
     pub min_graduation_threshold: u128,
     /// Maximum graduation threshold in uxyz. Default: 50,000,000 XYZ = 50_000_000_000_000
     pub max_graduation_threshold: u128,
+    /// Target starting market cap in micro-USD. Default: $1,000 = 1_000_000_000
+    #[serde(default)]
+    pub target_starting_mc_usd: u128,
+    /// Target total USD raised to graduate in micro-USD. Default: $2,000 = 2_000_000_000
+    #[serde(default)]
+    pub target_raised_usd: u128,
 }
 
 #[cw_serde]
@@ -68,6 +74,21 @@ pub struct Curve {
     /// Per-curve graduation threshold (ratcheted -- only increases).
     /// None for legacy curves created before v2.0.
     pub graduation_threshold_uxyz: Option<u128>,
+    /// Virtual XYZ reserves at curve start (uxyz). 0 = use legacy hardcoded constants.
+    #[serde(default)]
+    pub virtual_xyz_start: u128,
+    /// Virtual token reserves at curve start (utokens). 0 = use legacy hardcoded constants.
+    #[serde(default)]
+    pub virtual_tokens_start: u128,
+    /// Constant product invariant K = virtual_xyz * virtual_tokens.
+    #[serde(default)]
+    pub curve_k: u128,
+    /// Tokens available for purchase on this curve (utokens).
+    #[serde(default)]
+    pub tokens_on_curve: u128,
+    /// Tokens reserved for LP at graduation (utokens).
+    #[serde(default)]
+    pub tokens_for_lp: u128,
 }
 
 pub const CONFIG: Item<Config> = Item::new("config");
@@ -81,4 +102,16 @@ pub struct PendingCurve {
     pub metadata: TokenMetadata,
     pub creator: Addr,
     pub initial_xyz: u128,
+    #[serde(default)]
+    pub virtual_xyz_start: u128,
+    #[serde(default)]
+    pub virtual_tokens_start: u128,
+    #[serde(default)]
+    pub curve_k: u128,
+    #[serde(default)]
+    pub tokens_on_curve: u128,
+    #[serde(default)]
+    pub tokens_for_lp: u128,
+    #[serde(default)]
+    pub graduation_threshold_uxyz: u128,
 }

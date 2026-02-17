@@ -32,4 +32,11 @@ pub enum ContractError {
 
     #[error("Both augmented_fee_bps and lp_target_uxyz must be provided together, or neither")]
     AugmentedFeeIncomplete {},
+
+    #[error("Total fee cap exceeded: swap_fee_bps ({swap_fee_bps}) + augmented_fee_bps ({augmented_fee_bps}) = {total} exceeds maximum of 1000 bps (10%)")]
+    TotalFeeCapExceeded {
+        swap_fee_bps: u16,
+        augmented_fee_bps: u16,
+        total: u16,
+    },
 }

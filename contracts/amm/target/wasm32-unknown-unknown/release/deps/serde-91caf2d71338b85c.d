@@ -1,0 +1,14 @@
+/Users/Andy_C/official-xyz/contracts/amm/target/wasm32-unknown-unknown/release/deps/serde-91caf2d71338b85c.d: /Users/Andy_C/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs /Users/Andy_C/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs /Users/Andy_C/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs /Users/Andy_C/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs /Users/Andy_C/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs /Users/Andy_C/official-xyz/contracts/amm/target/wasm32-unknown-unknown/release/build/serde-ecb0e9533d26a9c8/out/private.rs
+
+/Users/Andy_C/official-xyz/contracts/amm/target/wasm32-unknown-unknown/release/deps/libserde-91caf2d71338b85c.rlib: /Users/Andy_C/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs /Users/Andy_C/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs /Users/Andy_C/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs /Users/Andy_C/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs /Users/Andy_C/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs /Users/Andy_C/official-xyz/contracts/amm/target/wasm32-unknown-unknown/release/build/serde-ecb0e9533d26a9c8/out/private.rs
+
+/Users/Andy_C/official-xyz/contracts/amm/target/wasm32-unknown-unknown/release/deps/libserde-91caf2d71338b85c.rmeta: /Users/Andy_C/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs /Users/Andy_C/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs /Users/Andy_C/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs /Users/Andy_C/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs /Users/Andy_C/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs /Users/Andy_C/official-xyz/contracts/amm/target/wasm32-unknown-unknown/release/build/serde-ecb0e9533d26a9c8/out/private.rs
+
+/Users/Andy_C/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs:
+/Users/Andy_C/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs:
+/Users/Andy_C/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs:
+/Users/Andy_C/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs:
+/Users/Andy_C/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs:
+/Users/Andy_C/official-xyz/contracts/amm/target/wasm32-unknown-unknown/release/build/serde-ecb0e9533d26a9c8/out/private.rs:
+
+# env-dep:OUT_DIR=/Users/Andy_C/official-xyz/contracts/amm/target/wasm32-unknown-unknown/release/build/serde-ecb0e9533d26a9c8/out

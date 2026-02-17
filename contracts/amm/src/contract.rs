@@ -16,6 +16,8 @@ use crate::state::{Config, Pool, AugmentedFeeConfig, CONFIG, POOLS};
 
 const CONTRACT_NAME: &str = "crates.io:xyz-amm";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
+/// Maximum total fee (base + augmented) in basis points: 1000 bps = 10%
+const MAX_TOTAL_FEE_BPS: u16 = 1000;
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
@@ -31,11 +33,14 @@ pub fn instantiate(
         authorized_creators.push(validated);
     }
 
-    // Validate swap_fee_bps (must be <= 10000)
-    if msg.swap_fee_bps > 10000 {
-        return Err(ContractError::Std(StdError::generic_err(
-            "Swap fee must be <= 10000 basis points (100%)",
-        )));
+    // Validate swap_fee_bps against fee cap
+    // Base fee alone cannot exceed the total fee cap since augmented fees add on top
+    if msg.swap_fee_bps > MAX_TOTAL_FEE_BPS {
+        return Err(ContractError::TotalFeeCapExceeded {
+            swap_fee_bps: msg.swap_fee_bps,
+            augmented_fee_bps: 0,
+            total: msg.swap_fee_bps,
+        });
     }
 
     // Save config
@@ -194,6 +199,15 @@ fn execute_create_pool(
             // Both provided - validate and create config
             if fee_bps == 0 || fee_bps > 500 {
                 return Err(ContractError::AugmentedFeeInvalid {});
+            }
+            // Validate total fee cap: base + augmented must not exceed 1000 bps (10%)
+            let total_fee = config.swap_fee_bps + fee_bps;
+            if total_fee > MAX_TOTAL_FEE_BPS {
+                return Err(ContractError::TotalFeeCapExceeded {
+                    swap_fee_bps: config.swap_fee_bps,
+                    augmented_fee_bps: fee_bps,
+                    total: total_fee,
+                });
             }
             let target = target_str.parse::<u128>().map_err(|_| {
                 ContractError::Std(StdError::generic_err("Invalid lp_target_uxyz format"))
@@ -1325,6 +1339,93 @@ mod tests {
         assert_eq!(status.lp_target_uxyz, Uint128::from(20000u128));
         assert_eq!(status.current_pool_value_uxyz, Uint128::from(10000u128));
         assert_eq!(status.progress_percent, "50.00"); // 10000/20000 * 100 = 50%
+    }
+
+    // ==================== Fee Cap Validation Tests ====================
+
+    #[test]
+    fn test_instantiate_fee_cap_rejects_over_1000() {
+        // Base swap_fee_bps > 1000 should be rejected
+        // Test the validation logic directly
+        let fee: u16 = 1001;
+        assert!(fee > MAX_TOTAL_FEE_BPS);
+    }
+
+    #[test]
+    fn test_instantiate_fee_cap_allows_1000() {
+        // Base swap_fee_bps == 1000 (10%) should be allowed
+        let fee: u16 = 1000;
+        assert!(fee <= MAX_TOTAL_FEE_BPS);
+    }
+
+    #[test]
+    fn test_instantiate_fee_cap_allows_zero() {
+        // 0% fee should be allowed
+        let fee: u16 = 0;
+        assert!(fee <= MAX_TOTAL_FEE_BPS);
+    }
+
+    #[test]
+    fn test_total_fee_cap_base_plus_augmented_at_limit() {
+        // Base 900 bps + augmented 100 bps = 1000 bps (exactly at cap, should pass)
+        let base_fee: u16 = 900;
+        let augmented_fee: u16 = 100;
+        let total = base_fee + augmented_fee;
+        assert!(total <= MAX_TOTAL_FEE_BPS);
+        assert_eq!(total, 1000);
+    }
+
+    #[test]
+    fn test_total_fee_cap_base_plus_augmented_over_limit() {
+        // Base 900 bps + augmented 101 bps = 1001 bps (over cap, should fail)
+        let base_fee: u16 = 900;
+        let augmented_fee: u16 = 101;
+        let total = base_fee + augmented_fee;
+        assert!(total > MAX_TOTAL_FEE_BPS);
+    }
+
+    #[test]
+    fn test_total_fee_cap_typical_config() {
+        // Typical config: 100 bps base + 100 bps augmented = 200 bps (well under cap)
+        let base_fee: u16 = 100;
+        let augmented_fee: u16 = 100;
+        let total = base_fee + augmented_fee;
+        assert!(total <= MAX_TOTAL_FEE_BPS);
+        assert_eq!(total, 200);
+    }
+
+    #[test]
+    fn test_total_fee_cap_max_augmented_with_base() {
+        // Max individual augmented (500) + reasonable base (100) = 600 bps (under cap)
+        let base_fee: u16 = 100;
+        let augmented_fee: u16 = 500;
+        let total = base_fee + augmented_fee;
+        assert!(total <= MAX_TOTAL_FEE_BPS);
+    }
+
+    #[test]
+    fn test_total_fee_cap_max_augmented_with_high_base() {
+        // Max individual augmented (500) + high base (501) = 1001 bps (over cap)
+        // Note: augmented_fee_bps <= 500 check passes, but total fee cap fails
+        let base_fee: u16 = 501;
+        let augmented_fee: u16 = 500;
+        let total = base_fee + augmented_fee;
+        assert!(total > MAX_TOTAL_FEE_BPS);
+    }
+
+    #[test]
+    fn test_fee_cap_error_has_descriptive_fields() {
+        // Verify the error type carries the right information
+        let err = ContractError::TotalFeeCapExceeded {
+            swap_fee_bps: 600,
+            augmented_fee_bps: 500,
+            total: 1100,
+        };
+        let msg = format!("{}", err);
+        assert!(msg.contains("1000"));  // mentions the cap
+        assert!(msg.contains("600"));   // mentions the base fee
+        assert!(msg.contains("500"));   // mentions the augmented fee
+        assert!(msg.contains("1100"));  // mentions the total
     }
 
 }

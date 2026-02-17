@@ -41,4 +41,10 @@ pub enum ContractError {
 
     #[error("Invalid threshold bounds: min {min} must be <= max {max}")]
     InvalidThresholdBounds { min: u128, max: u128 },
+
+    #[error("Oracle price required to create tokens")]
+    OraclePriceRequired {},
+
+    #[error("Invalid curve parameters: {reason}")]
+    InvalidCurveParams { reason: String },
 }

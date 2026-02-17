@@ -4,4 +4,4 @@
 #   cargo build --release --target wasm32-unknown-unknown --lib
 #   wasm-opt --enable-sign-ext --enable-mutable-globals --signext-lowering -Oz --strip-debug input.wasm -o output.wasm
 [target.wasm32-unknown-unknown]
-rustflags = ["-C", "link-arg=-s", "-C", "target-feature=-reference-types,-multivalue,-bulk-memory"]
+rustflags = ["-C", "link-arg=-s", "-C", "target-feature=-reference-types,-multivalue,-bulk-memory,-sign-ext"]
