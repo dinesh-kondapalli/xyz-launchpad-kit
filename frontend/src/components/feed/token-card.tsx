@@ -2,8 +2,6 @@
 
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import type { TokenListItem } from "@/lib/api";
 import { useCurveProgress } from "@/hooks/use-curve-progress";
@@ -18,93 +16,72 @@ export function TokenCard({ token }: TokenCardProps) {
   const { data: progress } = useCurveProgress(token.address);
   const { xyzPriceUsd } = useXyzPrice();
 
-  const progressValue = token.graduated
-    ? 100
-    : progress
-      ? Math.min(100, progress.progress_percent)
-      : 0; // 0 while loading (brief flash, acceptable)
+  const progressValue = token.graduated ? 100 : progress ? Math.min(100, progress.progress_percent) : 0;
 
   return (
     <Link href={`/token/${token.address}`} className="block w-full touch-manipulation">
-      <Card className="w-full gap-4 border-border/80 bg-card/75 py-4 transition-all hover:-translate-y-0.5 hover:border-primary/45 hover:shadow-lg hover:shadow-black/25">
-        <CardContent className="space-y-4 px-4 sm:px-5">
-          <div className="flex gap-3">
-            {token.image ? (
-              <img
-                src={token.image}
-                alt={token.symbol ?? "token"}
-                className="h-16 w-16 rounded-xl object-cover"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = "none";
-                }}
-              />
-            ) : (
-              <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-muted text-lg font-black text-muted-foreground">
-                {(token.symbol ?? "?").slice(0, 1).toUpperCase()}
-              </div>
-            )}
+      <article className="overflow-hidden rounded-sm border border-[#2a2a2a] bg-[#0a0a0a] transition-all hover:-translate-y-0.5 hover:border-[#b53f79]">
+        <div className="relative aspect-square w-full overflow-hidden border-b border-[#1f1f1f] bg-[#111]">
+          {token.image ? (
+            <img
+              src={token.image}
+              alt={token.symbol ?? "token"}
+              className="h-full w-full object-cover"
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = "none";
+              }}
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center text-5xl font-black text-[#9b9b9b]">
+              {(token.symbol ?? "?").slice(0, 1).toUpperCase()}
+            </div>
+          )}
+          {token.graduated && (
+            <span className="absolute right-2 top-2 rounded-sm border border-[#2e2e2e] bg-[#0b0b0b] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-[#f0f0f0]">
+              Live
+            </span>
+          )}
+        </div>
 
-            <div className="min-w-0 flex-1">
-              <div className="flex items-start justify-between gap-2">
-                <p className="truncate text-base font-bold text-foreground">{token.name ?? "Unknown Token"}</p>
-                {token.graduated && <Badge variant="secondary">Graduated</Badge>}
-              </div>
-              <p className="truncate text-sm font-medium text-sky-300">${token.symbol ?? "???"}</p>
-              <p className="truncate pt-1 text-xs text-muted-foreground">
-                created by {truncate(token.creator ?? token.address, 6)} · {formatDistanceToNow(new Date(token.first_seen_at), { addSuffix: true })}
-              </p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-            <div>
-              <p className="text-xs text-muted-foreground">price</p>
-              <p className="font-mono text-foreground">
-                {token.current_price && token.current_price !== "0"
-                  ? formatPrice(token.current_price, xyzPriceUsd)
-                  : "--"}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">market cap</p>
-              <p className="font-mono text-emerald-400">{formatMarketCap(token.xyz_reserves, xyzPriceUsd)}</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">24h volume</p>
-              <p className="font-mono text-foreground">{formatVolume(token.volume_24h, xyzPriceUsd)}</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">24h trades</p>
-              <p className="font-mono text-foreground">{token.trade_count_24h}</p>
-            </div>
+        <div className="space-y-3 p-3">
+          <div>
+            <p className="truncate text-[10px] uppercase tracking-[0.12em] text-[#7f7f7f]">
+              Created: {truncate(token.creator ?? token.address, 6)}
+            </p>
+            <p className="truncate pt-1 text-xl font-bold leading-tight text-white">
+              {token.name ?? "Unknown Token"}
+            </p>
+            <p className="truncate text-xs text-[#9a9a9a]">{token.description ?? "No description"}</p>
           </div>
 
           <div className="space-y-1">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">bonding progress</span>
-              <span className="font-mono text-foreground">{progressValue.toFixed(1)}%</span>
-            </div>
-            <Progress value={progressValue} className="h-1.5" />
+            <p className="text-[10px] uppercase tracking-[0.1em] text-[#7f7f7f]">Market Cap</p>
+            <p className="font-mono text-sm font-semibold text-[#41dc76]">{formatMarketCap(token.xyz_reserves, xyzPriceUsd)}</p>
           </div>
 
-          {token.description && (
-            <p className="truncate text-sm text-muted-foreground">{token.description}</p>
-          )}
-        </CardContent>
-      </Card>
+          <div className="space-y-1">
+            <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.1em] text-[#7f7f7f]">
+              <span>{token.graduated ? "Listed" : "Seeding"}</span>
+              <span>{progressValue.toFixed(0)}%</span>
+            </div>
+            <Progress
+              value={progressValue}
+              className="h-1 rounded-none bg-[#1f1f1f] [&>[data-slot=progress-indicator]]:bg-[#37d56a]"
+            />
+          </div>
+
+          <div className="flex items-center justify-between border-t border-[#1f1f1f] pt-2 text-[11px] text-[#7f7f7f]">
+            <span>{formatDistanceToNow(new Date(token.first_seen_at), { addSuffix: true })}</span>
+            <span className="font-mono text-[#d2d2d2]">{formatPrice(token.current_price, xyzPriceUsd)}</span>
+          </div>
+        </div>
+      </article>
     </Link>
   );
 }
 
-// Contract returns current_price as a decimal string in XYZ (e.g. "0.000001")
 function formatPrice(priceXyz: string, xyzPriceUsd: number): string {
   const usd = Number(priceXyz) * xyzPriceUsd;
-  return formatUsd(usd);
-}
-
-function formatVolume(volumeUxyz: string, xyzPriceUsd: number): string {
-  if (!volumeUxyz || volumeUxyz === "0") return "$0";
-  const usd = (Number(volumeUxyz) / 1_000_000) * xyzPriceUsd;
   return formatUsd(usd);
 }
 
