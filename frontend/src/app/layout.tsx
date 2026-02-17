@@ -28,7 +28,17 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <Providers>{children}</Providers>
+        <div
+          aria-hidden="true"
+          className="pointer-events-none fixed top-16 bottom-[57px] left-0 z-0 hidden w-[220px] bg-[url('/left.png')] bg-[length:100%_100%] bg-center bg-no-repeat xl:block 2xl:w-[280px]"
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none fixed top-16 bottom-[57px] right-0 z-0 hidden w-[220px] bg-[url('/right.png')] bg-[length:100%_100%] bg-center bg-no-repeat xl:block 2xl:w-[280px]"
+        />
+        <div className="relative z-10">
+          <Providers>{children}</Providers>
+        </div>
       </body>
     </html>
   );

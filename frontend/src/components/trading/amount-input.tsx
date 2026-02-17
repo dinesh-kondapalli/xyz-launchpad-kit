@@ -41,7 +41,7 @@ export function AmountInput({
         className={error ? "border-destructive min-h-[44px]" : "min-h-[44px]"}
         disabled={disabled}
       />
-      <div className="flex flex-wrap gap-2">
+      <div className="grid grid-cols-2 gap-2">
         {presets.map((amount) => (
           <Button
             key={amount}
@@ -50,7 +50,7 @@ export function AmountInput({
             size="sm"
             onClick={() => onChange(amount.toString())}
             disabled={disabled}
-            className="min-h-[44px] min-w-[44px] touch-manipulation"
+            className="min-h-[44px] w-full touch-manipulation"
           >
             {formatPreset(amount)} {denom}
           </Button>

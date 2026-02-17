@@ -148,13 +148,13 @@ export function SwapForm({ tokenAddress, tokenSymbol }: SwapFormProps) {
         className="space-y-6"
       >
         {/* Direction toggle */}
-        <div className="flex rounded-lg border overflow-hidden">
+        <div className="inline-flex h-10 w-full items-stretch rounded-lg bg-muted p-1">
           <button
             type="button"
-            className={`flex-1 min-h-[44px] text-sm font-medium transition-colors touch-manipulation ${
+            className={`flex-1 rounded-md text-sm font-semibold transition-colors touch-manipulation ${
               buyDirection
-                ? "bg-primary text-primary-foreground"
-                : "bg-background hover:bg-muted"
+                ? "bg-background text-foreground"
+                : "text-muted-foreground hover:text-foreground"
             }`}
             onClick={() => {
               setBuyDirection(true);
@@ -165,10 +165,10 @@ export function SwapForm({ tokenAddress, tokenSymbol }: SwapFormProps) {
           </button>
           <button
             type="button"
-            className={`flex-1 min-h-[44px] text-sm font-medium transition-colors touch-manipulation ${
+            className={`flex-1 rounded-md text-sm font-semibold transition-colors touch-manipulation ${
               !buyDirection
-                ? "bg-primary text-primary-foreground"
-                : "bg-background hover:bg-muted"
+                ? "bg-background text-foreground"
+                : "text-muted-foreground hover:text-foreground"
             }`}
             onClick={() => {
               setBuyDirection(false);

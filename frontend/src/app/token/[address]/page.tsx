@@ -194,9 +194,9 @@ export default function TokenDetailPage() {
               ) : (
                 <div className="rounded-lg border p-4">
                   <Tabs defaultValue="buy">
-                    <TabsList className="grid w-full grid-cols-2">
-                      <TabsTrigger value="buy" className="min-h-[44px]">Buy</TabsTrigger>
-                      <TabsTrigger value="sell" className="min-h-[44px]">Sell</TabsTrigger>
+                    <TabsList className="inline-flex h-10 w-full items-stretch rounded-lg bg-muted p-1">
+                      <TabsTrigger value="buy" className="flex-1 rounded-md font-semibold data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=inactive]:text-muted-foreground">Buy</TabsTrigger>
+                      <TabsTrigger value="sell" className="flex-1 rounded-md font-semibold data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=inactive]:text-muted-foreground">Sell</TabsTrigger>
                     </TabsList>
                     <TabsContent value="buy" className="mt-4">
                       <BuyForm

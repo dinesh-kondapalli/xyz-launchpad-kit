@@ -5,25 +5,26 @@ import { ConnectButton } from "@/components/wallet/connect-button";
 
 export function Header() {
   return (
-    <header className="border-b">
-      <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-2 px-6 sm:gap-4 lg:px-10">
-        <div className="flex items-center gap-2 sm:gap-6 overflow-hidden">
-          <Link href="/" className="font-bold text-xl">
-            XYZ
+    <header className="sticky top-0 z-20 border-b border-border/70 bg-background/75 backdrop-blur-md">
+      <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-2 px-4 sm:gap-4 sm:px-6 lg:px-10">
+        <div className="flex items-center gap-3 overflow-hidden sm:gap-6">
+          <Link href="/" className="text-lg font-black tracking-wide text-foreground sm:text-xl">
+            XYZ.LIVE
           </Link>
-          <nav className="flex items-center gap-2 sm:gap-4">
+          <nav className="hidden items-center gap-2 text-sm sm:flex sm:gap-4">
             <Link
               href="/"
-              className="min-h-[44px] flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors text-nowrap"
+              className="inline-flex h-9 items-center text-nowrap font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
-              Launches
+              [launches]
             </Link>
             <Link
               href="/create"
-              className="min-h-[44px] flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors text-nowrap"
+              className="inline-flex h-9 items-center text-nowrap font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
-              Create Token
+              [start coin]
             </Link>
+            <span className="inline-flex h-9 items-center text-muted-foreground/70">[support]</span>
           </nav>
         </div>
         <ConnectButton />
