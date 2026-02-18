@@ -1,6 +1,6 @@
 "use client";
 
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -11,7 +11,6 @@ import {
   FormField,
   FormItem,
   FormLabel,
-  FormMessage,
 } from "@/components/ui/form";
 import { Slider } from "@/components/ui/slider";
 import { useWalletStore } from "@/stores/wallet-store";
@@ -39,8 +38,8 @@ export function SellForm({ tokenAddress, tokenSymbol }: SellFormProps) {
     defaultValues: { tokenAmount: "", slippage: 1 },
   });
 
-  const tokenAmount = form.watch("tokenAmount");
-  const slippage = form.watch("slippage");
+  const tokenAmount = useWatch({ control: form.control, name: "tokenAmount" });
+  const slippage = useWatch({ control: form.control, name: "slippage" });
 
   // Real-time sell simulation
   const { data: simulation, isLoading: isSimulating } = useQuery({

@@ -3,8 +3,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export function TokenCardSkeleton() {
   return (
-    <Card className="gap-0 overflow-hidden rounded-sm border-[#2a2a2a] bg-[#0a0a0a] py-0">
-      <div className="aspect-square border-b border-[#1f1f1f] p-2">
+    <Card className="gap-0 overflow-hidden rounded-2xl border-zinc-800 bg-[#080808] py-0">
+      <div className="aspect-square border-b border-zinc-900 p-2">
         <Skeleton className="h-full w-full rounded-none" />
       </div>
       <CardHeader className="space-y-2 pb-2">

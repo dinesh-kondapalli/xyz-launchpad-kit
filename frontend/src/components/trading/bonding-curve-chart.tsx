@@ -16,9 +16,9 @@ export function BondingCurveChart({ tokenAddress }: BondingCurveChartProps) {
 
   if (isLoading) {
     return (
-      <div className="rounded-lg border p-4 space-y-3">
+      <div className="space-y-3 rounded-2xl border border-zinc-900 bg-[#050505] p-4">
         <Skeleton className="h-5 w-32" />
-        <Skeleton className="h-6 w-full rounded-full" />
+        <Skeleton className="h-6 w-full rounded-sm" />
         <Skeleton className="h-4 w-3/4" />
       </div>
     );
@@ -28,12 +28,12 @@ export function BondingCurveChart({ tokenAddress }: BondingCurveChartProps) {
 
   if (progress.graduated) {
     return (
-      <div className="rounded-lg border p-4 space-y-3">
+      <div className="space-y-3 rounded-2xl border border-zinc-900 bg-[#050505] p-4">
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold">Bonding Curve</h3>
+          <h3 className="font-semibold text-zinc-100">Bonding Curve</h3>
           <Badge variant="secondary">Graduated</Badge>
         </div>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-zinc-500">
           This token has graduated to the AMM. The bonding curve is now closed.
         </p>
       </div>
@@ -48,22 +48,22 @@ export function BondingCurveChart({ tokenAddress }: BondingCurveChartProps) {
   const thresholdUsd = (gradThreshold / 1e6) * xyzPriceUsd;
 
   return (
-    <div className="rounded-lg border p-4 space-y-2">
+    <div className="space-y-2 rounded-2xl border border-zinc-900 bg-[#050505] p-4">
       <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-sm">Bonding Curve Progress</h3>
-        <span className="text-xs font-mono font-medium">
+        <h3 className="text-sm font-semibold text-zinc-100">Bonding Curve Progress</h3>
+        <span className="text-xs font-mono font-medium text-zinc-200">
           {progressPct.toFixed(1)}%
         </span>
       </div>
 
-      <div className="h-5 w-full rounded-full bg-muted overflow-hidden">
+      <div className="h-5 w-full overflow-hidden rounded-sm bg-zinc-900">
         <div
-          className="h-full rounded-full bg-gradient-to-r from-green-500 to-emerald-400 transition-all duration-500"
+          className="h-full rounded-sm bg-pink-700 transition-all duration-500"
           style={{ width: `${Math.max(progressPct, 0.5)}%` }}
         />
       </div>
 
-      <div className="flex justify-between text-xs text-muted-foreground">
+      <div className="flex justify-between text-xs text-zinc-500">
         <span>{formatUsd(raisedUsd)} raised</span>
         <span>{formatUsd(thresholdUsd)} to graduate</span>
       </div>

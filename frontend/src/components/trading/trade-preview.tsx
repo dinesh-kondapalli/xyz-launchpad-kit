@@ -44,35 +44,35 @@ export function TradePreview({
     : null;
 
   return (
-    <div className="rounded-md bg-muted p-4 space-y-2 text-sm">
+    <div className="space-y-2 rounded-xl border border-zinc-900 bg-zinc-950 p-4 text-sm">
       <div className="flex justify-between">
-        <span className="text-muted-foreground">You receive (est.)</span>
-        <span className="font-mono">
+        <span className="text-zinc-500">You receive (est.)</span>
+        <span className="font-mono text-zinc-100">
           {formatOutput(estimatedOutput)} {!outputIsXyz && outputDenom}
         </span>
       </div>
       <div className="flex justify-between">
-        <span className="text-muted-foreground">
+        <span className="text-zinc-500">
           Min after slippage ({slippagePercent}%)
         </span>
-        <span className="font-mono">
+        <span className="font-mono text-zinc-100">
           {formatOutput(minOutput)} {!outputIsXyz && outputDenom}
         </span>
       </div>
       <div className="flex justify-between">
-        <span className="text-muted-foreground">Fee</span>
-        <span className="font-mono">{feeUsd}</span>
+        <span className="text-zinc-500">Fee</span>
+        <span className="font-mono text-zinc-100">{feeUsd}</span>
       </div>
       {priceImpact && (
         <div className="flex justify-between">
-          <span className="text-muted-foreground">Price impact</span>
-          <span className="font-mono">{priceImpact}%</span>
+          <span className="text-zinc-500">Price impact</span>
+          <span className="font-mono text-zinc-100">{priceImpact}%</span>
         </div>
       )}
       {newPriceUsd && (
         <div className="flex justify-between">
-          <span className="text-muted-foreground">New price</span>
-          <span className="font-mono">{newPriceUsd}</span>
+          <span className="text-zinc-500">New price</span>
+          <span className="font-mono text-zinc-100">{newPriceUsd}</span>
         </div>
       )}
     </div>

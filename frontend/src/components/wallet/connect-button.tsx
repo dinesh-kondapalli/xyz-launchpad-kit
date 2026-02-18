@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Wallet } from "@phosphor-icons/react";
 import { useWalletStore } from "@/stores/wallet-store";
 import { Button } from "@/components/ui/button";
 import { WalletSelector } from "@/components/wallet/wallet-selector";
@@ -18,6 +19,7 @@ export function ConnectButton() {
   return (
     <>
       <Button onClick={() => setSelectorOpen(true)} disabled={isConnecting}>
+        <Wallet size={16} weight="fill" />
         {isConnecting ? "Connecting..." : "Connect Wallet"}
       </Button>
       <WalletSelector open={selectorOpen} onOpenChange={setSelectorOpen} />

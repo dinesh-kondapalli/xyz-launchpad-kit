@@ -15,29 +15,29 @@ export function RecentTrades({ tokenAddress, tokenSymbol }: RecentTradesProps) {
   const { xyzPriceUsd } = useXyzPrice();
 
   return (
-    <div>
-      <h2 className="text-lg font-semibold mb-3">Recent Transactions</h2>
-      <div className="rounded-md border overflow-hidden">
+    <div className="h-full">
+      <h2 className="mb-3 text-lg font-semibold text-zinc-100">Recent Transactions</h2>
+      <div className="min-h-[22rem] overflow-hidden rounded-2xl border border-zinc-900 bg-[#050505]">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[760px] text-sm">
             <thead>
-              <tr className="border-b bg-muted/50">
-                <th className="text-left px-3 py-2 font-medium text-muted-foreground">
+              <tr className="border-b border-zinc-900 bg-zinc-950/80">
+                <th className="px-4 py-3 text-left font-medium text-zinc-500">
                   Time
                 </th>
-                <th className="text-left px-3 py-2 font-medium text-muted-foreground">
+                <th className="px-4 py-3 text-left font-medium text-zinc-500">
                   Type
                 </th>
-                <th className="text-right px-3 py-2 font-medium text-muted-foreground">
+                <th className="px-4 py-3 text-right font-medium text-zinc-500">
                   USD
                 </th>
-                <th className="text-right px-3 py-2 font-medium text-muted-foreground">
+                <th className="px-4 py-3 text-right font-medium text-zinc-500">
                   {tokenSymbol}
                 </th>
-                <th className="text-left px-3 py-2 font-medium text-muted-foreground">
+                <th className="px-4 py-3 text-left font-medium text-zinc-500">
                   Trader
                 </th>
-                <th className="text-right px-3 py-2 font-medium text-muted-foreground">
+                <th className="px-4 py-3 text-right font-medium text-zinc-500">
                   Tx
                 </th>
               </tr>
@@ -47,22 +47,22 @@ export function RecentTrades({ tokenAddress, tokenSymbol }: RecentTradesProps) {
                 <>
                   {Array.from({ length: 5 }).map((_, i) => (
                     <tr key={i} className="border-b last:border-0">
-                      <td className="px-3 py-2">
+                      <td className="px-4 py-3">
                         <Skeleton className="h-4 w-16" />
                       </td>
-                      <td className="px-3 py-2">
+                      <td className="px-4 py-3">
                         <Skeleton className="h-4 w-10" />
                       </td>
-                      <td className="px-3 py-2">
+                      <td className="px-4 py-3">
                         <Skeleton className="h-4 w-20 ml-auto" />
                       </td>
-                      <td className="px-3 py-2">
+                      <td className="px-4 py-3">
                         <Skeleton className="h-4 w-20 ml-auto" />
                       </td>
-                      <td className="px-3 py-2">
+                      <td className="px-4 py-3">
                         <Skeleton className="h-4 w-24" />
                       </td>
-                      <td className="px-3 py-2">
+                      <td className="px-4 py-3">
                         <Skeleton className="h-4 w-8 ml-auto" />
                       </td>
                     </tr>
@@ -74,7 +74,7 @@ export function RecentTrades({ tokenAddress, tokenSymbol }: RecentTradesProps) {
                 <tr>
                   <td
                     colSpan={6}
-                    className="px-3 py-8 text-center text-muted-foreground"
+                    className="px-4 py-8 text-center text-zinc-500"
                   >
                     No trades yet
                   </td>
@@ -84,34 +84,34 @@ export function RecentTrades({ tokenAddress, tokenSymbol }: RecentTradesProps) {
               {trades?.map((trade) => (
                 <tr
                   key={trade.tx_hash}
-                  className="border-b last:border-0 hover:bg-muted/30 transition-colors"
+                  className="border-b border-zinc-900 transition-colors hover:bg-zinc-950"
                 >
-                  <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">
+                  <td className="whitespace-nowrap px-4 py-3 text-zinc-500">
                     {formatTimeAgo(trade.time)}
                   </td>
-                  <td className="px-3 py-2">
+                  <td className="px-4 py-3">
                     <span
                       className={`inline-flex items-center rounded px-1.5 py-0.5 text-xs font-semibold ${
                         trade.action === "buy"
-                          ? "bg-green-500/15 text-green-600 dark:text-green-400"
-                          : "bg-red-500/15 text-red-600 dark:text-red-400"
+                          ? "bg-pink-950 text-pink-300"
+                          : "bg-zinc-900 text-zinc-300"
                       }`}
                     >
                       {trade.action === "buy" ? "Buy" : "Sell"}
                     </span>
                   </td>
-                  <td className="px-3 py-2 text-right font-mono whitespace-nowrap">
+                  <td className="px-4 py-3 text-right font-mono whitespace-nowrap">
                     {formatUxyzAsUsd(trade.xyz_amount, xyzPriceUsd)}
                   </td>
-                  <td className="px-3 py-2 text-right font-mono whitespace-nowrap">
+                  <td className="px-4 py-3 text-right font-mono whitespace-nowrap">
                     {formatMicroTokens(trade.token_amount)}
                   </td>
-                  <td className="px-3 py-2 font-mono text-muted-foreground">
+                  <td className="px-4 py-3 font-mono text-zinc-500">
                     {truncateAddress(trade.trader)}
                   </td>
-                  <td className="px-3 py-2 text-right">
+                  <td className="px-4 py-3 text-right">
                     <span
-                      className="text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+                      className="cursor-pointer text-xs text-zinc-500 hover:text-zinc-200"
                       title={trade.tx_hash}
                     >
                       {trade.tx_hash.slice(0, 6)}...

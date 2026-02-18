@@ -7,7 +7,7 @@ export function TradingChartSkeleton() {
         <Skeleton className="h-6 w-24" />
         <Skeleton className="h-9 w-48" />
       </div>
-      <Skeleton className="h-[400px] w-full rounded-lg" />
+      <Skeleton className="h-[400px] w-full rounded-2xl" />
     </div>
   );
 }

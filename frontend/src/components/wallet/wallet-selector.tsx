@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { isKeplrAvailable, isLeapAvailable, isXYZAvailable, type WalletType } from "@xyz-chain/sdk";
 import { useWalletStore } from "@/stores/wallet-store";
 import {
@@ -22,21 +22,23 @@ export function WalletSelector({ open, onOpenChange }: WalletSelectorProps) {
   const isConnecting = useWalletStore((s) => s.isConnecting);
   const error = useWalletStore((s) => s.error);
 
-  const [keplrAvailable, setKeplrAvailable] = useState(false);
-  const [leapAvailable, setLeapAvailable] = useState(false);
-  const [xyzAvailable, setXYZAvailable] = useState(false);
   const [showMnemonic, setShowMnemonic] = useState(false);
   const [mnemonic, setMnemonic] = useState("");
 
-  useEffect(() => {
-    if (open) {
-      setKeplrAvailable(isKeplrAvailable());
-      setLeapAvailable(isLeapAvailable());
-      setXYZAvailable(isXYZAvailable());
-      setShowMnemonic(false);
-      setMnemonic("");
-    }
-  }, [open]);
+  const keplrAvailable = open && isKeplrAvailable();
+  const leapAvailable = open && isLeapAvailable();
+  const xyzAvailable = open && isXYZAvailable();
+
+  const handleOpenChange = useCallback(
+    (nextOpen: boolean) => {
+      if (nextOpen) {
+        setShowMnemonic(false);
+        setMnemonic("");
+      }
+      onOpenChange(nextOpen);
+    },
+    [onOpenChange]
+  );
 
   const handleConnect = useCallback(
     async (type: WalletType, mnemonicValue?: string) => {
@@ -55,10 +57,10 @@ export function WalletSelector({ open, onOpenChange }: WalletSelectorProps) {
   }, [mnemonic, handleConnect]);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-sm">
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent className="border-zinc-800 bg-zinc-950 sm:max-w-sm">
         <DialogHeader>
-          <DialogTitle>Connect Wallet</DialogTitle>
+          <DialogTitle className="text-zinc-100">Connect Wallet</DialogTitle>
           <DialogDescription>
             Select a wallet to connect to XYZ Chain.
           </DialogDescription>
@@ -74,7 +76,7 @@ export function WalletSelector({ open, onOpenChange }: WalletSelectorProps) {
           >
             <span>Keplr</span>
             {!keplrAvailable && (
-              <span className="text-xs text-muted-foreground">Not installed</span>
+              <span className="text-xs text-zinc-500">Not installed</span>
             )}
           </Button>
 
@@ -87,7 +89,7 @@ export function WalletSelector({ open, onOpenChange }: WalletSelectorProps) {
           >
             <span>Leap</span>
             {!leapAvailable && (
-              <span className="text-xs text-muted-foreground">Not installed</span>
+              <span className="text-xs text-zinc-500">Not installed</span>
             )}
           </Button>
 
@@ -100,7 +102,7 @@ export function WalletSelector({ open, onOpenChange }: WalletSelectorProps) {
           >
             <span>XYZ Wallet</span>
             {!xyzAvailable && (
-              <span className="text-xs text-muted-foreground">Not installed</span>
+              <span className="text-xs text-zinc-500">Not installed</span>
             )}
           </Button>
 
@@ -109,7 +111,7 @@ export function WalletSelector({ open, onOpenChange }: WalletSelectorProps) {
               <span className="w-full border-t" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">
+              <span className="bg-zinc-950 px-2 text-zinc-500">
                 or
               </span>
             </div>
@@ -124,12 +126,12 @@ export function WalletSelector({ open, onOpenChange }: WalletSelectorProps) {
               onClick={() => setShowMnemonic(true)}
             >
               <span>Test Wallet</span>
-              <span className="text-xs text-muted-foreground">Mnemonic</span>
+              <span className="text-xs text-zinc-500">Mnemonic</span>
             </Button>
           ) : (
             <div className="flex flex-col gap-2">
               <textarea
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
+                className="w-full resize-none rounded-lg border border-zinc-800 bg-black px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 rows={3}
                 placeholder="Enter mnemonic phrase..."
                 value={mnemonic}
@@ -148,11 +150,11 @@ export function WalletSelector({ open, onOpenChange }: WalletSelectorProps) {
         </div>
 
         {error && (
-          <p className="text-sm text-destructive text-center">{error}</p>
+          <p className="text-center text-sm text-pink-300">{error}</p>
         )}
 
         {isConnecting && (
-          <p className="text-sm text-muted-foreground text-center">
+          <p className="text-center text-sm text-zinc-500">
             Connecting...
           </p>
         )}

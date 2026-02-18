@@ -298,6 +298,7 @@ export interface RecentTrade {
 export const RECENT_TRADES_QUERY_KEY = ["trades", "recent"] as const;
 
 export async function fetchRecentTrades(limit: number = 50): Promise<RecentTrade[]> {
+  void limit;
   // No backend — return empty trades for now
   return [];
 }

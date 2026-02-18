@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowUpRight, ArrowDownRight, ArrowLeftRight } from "lucide-react";
+import {
+  ArrowBendUpRight,
+  ArrowBendDownRight,
+  ArrowsLeftRight,
+} from "@phosphor-icons/react";
 import { formatDistanceToNow } from "date-fns";
 import type { RecentTrade } from "@/lib/api";
 
@@ -31,26 +35,26 @@ export function ActivityItem({ trade }: ActivityItemProps) {
       case "buy":
       case "xyz_to_token":
         return {
-          icon: <ArrowUpRight className="h-4 w-4" />,
-          color: "text-green-500",
+          icon: <ArrowBendUpRight size={16} weight="fill" />,
+          color: "text-pink-400",
           action: "Bought",
         };
       case "sell":
       case "token_to_xyz":
         return {
-          icon: <ArrowDownRight className="h-4 w-4" />,
-          color: "text-red-500",
+          icon: <ArrowBendDownRight size={16} weight="fill" />,
+          color: "text-zinc-400",
           action: "Sold",
         };
       case "swap":
         return {
-          icon: <ArrowLeftRight className="h-4 w-4" />,
-          color: "text-blue-500",
+          icon: <ArrowsLeftRight size={16} weight="fill" />,
+          color: "text-pink-300",
           action: "Swapped",
         };
       default:
         return {
-          icon: <ArrowLeftRight className="h-4 w-4" />,
+          icon: <ArrowsLeftRight size={16} weight="fill" />,
           color: "text-muted-foreground",
           action: trade.action,
         };
@@ -69,17 +73,17 @@ export function ActivityItem({ trade }: ActivityItemProps) {
   const tokenDisplay = trade.token_symbol ?? trade.token_address.slice(0, 8);
 
   return (
-    <div className="flex items-center gap-3 rounded-lg border p-3 text-sm min-h-[44px]">
+    <div className="flex min-h-[44px] items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-950 p-3 text-sm">
       <div className={`flex-shrink-0 ${color}`}>{icon}</div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="font-mono text-xs text-muted-foreground">
+          <span className="font-mono text-xs text-zinc-500">
             {traderDisplay}
           </span>
-          <span className="text-muted-foreground">{action}</span>
-          <span className="font-medium truncate">{tokenDisplay}</span>
+          <span className="text-zinc-500">{action}</span>
+          <span className="truncate font-medium text-zinc-200">{tokenDisplay}</span>
         </div>
-        <div className="text-xs text-muted-foreground">
+        <div className="text-xs text-zinc-500">
           {volumeXYZ} XYZ · {relativeTime}
         </div>
       </div>

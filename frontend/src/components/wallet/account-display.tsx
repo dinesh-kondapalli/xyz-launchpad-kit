@@ -36,18 +36,18 @@ export function AccountDisplay() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" className="font-mono text-sm">
+        <Button variant="outline" className="font-mono text-sm text-zinc-200">
           <span>{truncateAddress(address)}</span>
           {balance && (
             <>
-              <span className="mx-1.5 text-muted-foreground">|</span>
+              <span className="mx-1.5 text-zinc-600">|</span>
               <span>{balance} XYZ</span>
             </>
           )}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+        <DropdownMenuLabel className="text-xs font-normal text-zinc-500">
           Connected via {walletName}
         </DropdownMenuLabel>
         <DropdownMenuSeparator />

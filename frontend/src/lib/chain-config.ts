@@ -11,3 +11,5 @@ export const REST_ENDPOINT =
 
 export const CHAIN_ID =
   process.env.NEXT_PUBLIC_CHAIN_ID ?? "xyz-1";
+
+export const DEFAULT_TOKEN_SUPPLY = 100_000_000;
