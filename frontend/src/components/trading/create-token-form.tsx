@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { Loader2, Upload, X } from "lucide-react";
+import { SpinnerGap, UploadSimple, X } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -34,7 +34,7 @@ import { TOKENS_QUERY_KEY } from "@/hooks/use-tokens";
 export function CreateTokenForm() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { connection, address, client, refreshBalance } = useWalletStore();
+  const { connection, address, refreshBalance } = useWalletStore();
   const { xyzPriceUsd } = useXyzPrice();
 
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -267,10 +267,10 @@ export function CreateTokenForm() {
                   }
                   className={`relative flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-6 transition-colors ${
                     isDragOver
-                      ? "border-primary bg-primary/5"
+                      ? "border-zinc-700 bg-pink-950/20"
                       : imagePreview
-                      ? "border-muted"
-                      : "border-muted-foreground/25 hover:border-muted-foreground/50 cursor-pointer"
+                      ? "border-zinc-700"
+                      : "cursor-pointer border-zinc-700 hover:border-zinc-600"
                   }`}
                 >
                   <input
@@ -287,13 +287,14 @@ export function CreateTokenForm() {
 
                   {isUploading ? (
                     <div className="flex flex-col items-center gap-2 py-4">
-                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                      <p className="text-sm text-muted-foreground">
+                      <SpinnerGap size={32} weight="fill" className="animate-spin text-zinc-500" />
+                      <p className="text-sm text-zinc-500">
                         Uploading...
                       </p>
                     </div>
                   ) : imagePreview ? (
                     <div className="relative">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={imagePreview}
                         alt="Token preview"
@@ -305,19 +306,19 @@ export function CreateTokenForm() {
                           e.stopPropagation();
                           handleRemoveImage();
                         }}
-                        className="absolute -right-2 -top-2 rounded-full bg-destructive p-1 text-destructive-foreground shadow-sm hover:bg-destructive/90"
+                        className="absolute -right-2 -top-2 rounded-sm bg-pink-700 p-1 text-pink-50 shadow-sm hover:bg-pink-600"
                       >
-                        <X className="h-3 w-3" />
+                        <X size={12} weight="fill" />
                       </button>
                     </div>
                   ) : (
                     <div className="flex flex-col items-center gap-2 py-4">
-                      <Upload className="h-8 w-8 text-muted-foreground" />
+                      <UploadSimple size={32} weight="fill" className="text-zinc-500" />
                       <div className="text-center">
-                        <p className="text-sm font-medium">
+                        <p className="text-sm font-medium text-zinc-100">
                           Drop image here or click to browse
                         </p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs text-zinc-500">
                           PNG, JPG, GIF, WebP, SVG (max 2MB)
                         </p>
                       </div>
@@ -373,11 +374,11 @@ export function CreateTokenForm() {
           )}
         />
 
-        <div className="rounded-md bg-muted p-4 text-sm space-y-1">
-          <p className="font-medium">
+        <div className="space-y-1 rounded-xl border border-zinc-900 bg-zinc-950 p-4 text-sm">
+          <p className="font-medium text-zinc-100">
             Creation Fee: {creationFeeDisplay > 0 ? creationFeeUsd : "Loading..."}
           </p>
-          <p className="text-muted-foreground">
+          <p className="text-zinc-500">
             This fee is paid to create the bonding curve for your token.
           </p>
         </div>

@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "XYZ Chain",
+  title: "XYZ Chain - DeFi platform for XYZ Chain",
   description: "DeFi platform for XYZ Chain",
 };
 

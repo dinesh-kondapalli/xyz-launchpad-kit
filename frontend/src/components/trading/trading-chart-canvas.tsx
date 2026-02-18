@@ -15,6 +15,7 @@ import {
 } from "lightweight-charts";
 import type { CandleResponse } from "@/lib/api";
 import { useXyzPrice } from "@/hooks/use-xyz-price";
+import { DEFAULT_TOKEN_SUPPLY } from "@/lib/chain-config";
 import type { ActiveIndicators } from "./indicator-toolbar";
 import {
   calculateSMA,
@@ -26,8 +27,6 @@ import {
 import { RsiChart } from "./rsi-chart";
 import { MacdChart } from "./macd-chart";
 
-const TOTAL_SUPPLY = 100_000_000; // 100M tokens
-
 interface TradingChartCanvasProps {
   data: CandleResponse;
   indicators: ActiveIndicators;
@@ -36,14 +35,14 @@ interface TradingChartCanvasProps {
 
 // Indicator color palette
 const COLORS: Record<string, string> = {
-  sma7: "#f59e0b",
-  sma25: "#3b82f6",
-  sma99: "#a855f7",
-  ema7: "#f97316",
-  ema25: "#06b6d4",
-  bollUpper: "rgba(236,72,153,0.4)",
-  bollMiddle: "#ec4899",
-  bollLower: "rgba(236,72,153,0.4)",
+  sma7: "#be185d",
+  sma25: "#9d174d",
+  sma99: "#831843",
+  ema7: "#db2777",
+  ema25: "#e11d48",
+  bollUpper: "rgba(244,63,94,0.4)",
+  bollMiddle: "#f43f5e",
+  bollLower: "rgba(244,63,94,0.4)",
 };
 
 function formatChartPrice(v: number): string {
@@ -92,7 +91,7 @@ export function TradingChartCanvas({
   const volumeSeriesRef = useRef<ISeriesApi<"Histogram"> | null>(null);
   const overlaysRef = useRef<Map<string, ISeriesApi<"Line">>>(new Map());
 
-  const multiplier = showMCap ? TOTAL_SUPPLY : 1;
+  const multiplier = showMCap ? DEFAULT_TOKEN_SUPPLY : 1;
 
   // Pre-compute data for all indicators
   const computed = useMemo(() => {
@@ -121,8 +120,8 @@ export function TradingChartCanvas({
         value: (Number(candle.volume) / 1e6) * volMul,
         color:
           close >= open
-            ? "rgba(38, 166, 154, 0.5)"
-            : "rgba(239, 83, 80, 0.5)",
+            ? "rgba(236, 72, 153, 0.5)"
+            : "rgba(113, 113, 122, 0.6)",
       });
     }
 
@@ -131,6 +130,19 @@ export function TradingChartCanvas({
 
     return { timestamps, closes, candleData, volumeData, rsi, macd };
   }, [data, xyzPriceUsd, multiplier]);
+
+  const initialLegend = useMemo<LegendData | null>(() => {
+    const last = computed.candleData[computed.candleData.length - 1];
+    const lastVol = computed.volumeData[computed.volumeData.length - 1];
+    if (!last) return null;
+    return {
+      open: last.open,
+      high: last.high,
+      low: last.low,
+      close: last.close,
+      volume: lastVol?.value ?? 0,
+    };
+  }, [computed]);
 
   // Initialize main chart on mount
   useEffect(() => {
@@ -166,11 +178,11 @@ export function TradingChartCanvas({
     chartRef.current = chart;
 
     const candleSeries = chart.addSeries(CandlestickSeries, {
-      upColor: "#26a69a",
-      downColor: "#ef5350",
+      upColor: "#ec4899",
+      downColor: "#71717a",
       borderVisible: false,
-      wickUpColor: "#26a69a",
-      wickDownColor: "#ef5350",
+      wickUpColor: "#ec4899",
+      wickDownColor: "#71717a",
     });
     candleSeries.priceScale().applyOptions({
       scaleMargins: { top: 0.1, bottom: 0.4 },
@@ -218,9 +230,11 @@ export function TradingChartCanvas({
     };
     window.addEventListener("resize", handleResize);
 
+    const overlays = overlaysRef.current;
+
     return () => {
       window.removeEventListener("resize", handleResize);
-      overlaysRef.current.clear();
+      overlays.clear();
       if (chartRef.current) {
         chartRef.current.remove();
         chartRef.current = null;
@@ -343,26 +357,14 @@ export function TradingChartCanvas({
     }
 
     chart.timeScale().fitContent();
-
-    // Set legend to last candle when data loads
-    const last = computed.candleData[computed.candleData.length - 1];
-    const lastVol = computed.volumeData[computed.volumeData.length - 1];
-    if (last) {
-      setLegend({
-        open: last.open,
-        high: last.high,
-        low: last.low,
-        close: last.close,
-        volume: lastVol?.value ?? 0,
-      });
-    }
   }, [computed, indicators]);
 
-  const up = legend ? legend.close >= legend.open : true;
-  const change = legend ? legend.close - legend.open : 0;
+  const displayedLegend = legend ?? initialLegend;
+  const up = displayedLegend ? displayedLegend.close >= displayedLegend.open : true;
+  const change = displayedLegend ? displayedLegend.close - displayedLegend.open : 0;
   const changePct =
-    legend && legend.open !== 0
-      ? ((legend.close - legend.open) / legend.open) * 100
+    displayedLegend && displayedLegend.open !== 0
+      ? ((displayedLegend.close - displayedLegend.open) / displayedLegend.open) * 100
       : 0;
 
   return (
@@ -372,33 +374,33 @@ export function TradingChartCanvas({
         <span className="text-muted-foreground font-sans font-medium text-[11px]">
           {showMCap ? "Market Cap" : "Price"} (USD)
         </span>
-        {legend && (
+        {displayedLegend && (
           <>
             <span>
               <span className="text-muted-foreground">O</span>
-              <span className={up ? "text-green-500" : "text-red-500"}>
-                {formatChartPrice(legend.open)}
+              <span className={up ? "text-pink-400" : "text-zinc-400"}>
+                {formatChartPrice(displayedLegend.open)}
               </span>
             </span>
             <span>
               <span className="text-muted-foreground">H</span>
-              <span className="text-green-500">
-                {formatChartPrice(legend.high)}
+              <span className="text-pink-400">
+                {formatChartPrice(displayedLegend.high)}
               </span>
             </span>
             <span>
               <span className="text-muted-foreground">L</span>
-              <span className="text-red-500">
-                {formatChartPrice(legend.low)}
+              <span className="text-zinc-400">
+                {formatChartPrice(displayedLegend.low)}
               </span>
             </span>
             <span>
               <span className="text-muted-foreground">C</span>
-              <span className={up ? "text-green-500" : "text-red-500"}>
-                {formatChartPrice(legend.close)}
+              <span className={up ? "text-pink-400" : "text-zinc-400"}>
+                {formatChartPrice(displayedLegend.close)}
               </span>
             </span>
-            <span className={up ? "text-green-500" : "text-red-500"}>
+            <span className={up ? "text-pink-400" : "text-zinc-400"}>
               {up ? "+" : "-"}
               {formatChartPrice(Math.abs(change))} (
               {changePct >= 0 ? "+" : ""}
@@ -407,13 +409,13 @@ export function TradingChartCanvas({
           </>
         )}
       </div>
-      {legend && indicators.volume && (
+      {displayedLegend && indicators.volume && (
         <div className="px-3 pb-1 text-xs font-mono">
           <span className="text-muted-foreground font-sans text-[11px]">
             Volume
           </span>{" "}
-          <span className="text-blue-400">
-            {formatChartPrice(legend.volume)}
+          <span className="text-pink-300">
+            {formatChartPrice(displayedLegend.volume)}
           </span>
         </div>
       )}

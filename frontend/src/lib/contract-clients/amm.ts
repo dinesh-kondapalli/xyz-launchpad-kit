@@ -4,6 +4,7 @@ import type { ExecuteResult } from "@xyz-chain/sdk";
 import type { SimulateSwapResponse, PoolResponse } from "./types";
 
 const AMM_CONTRACT = process.env.NEXT_PUBLIC_AMM_CONTRACT!;
+type ContractClient = Parameters<typeof executeContract>[0];
 
 /**
  * Query: Simulate a swap to get expected output and price impact
@@ -40,7 +41,7 @@ export async function getPool(
  * Sends native XYZ as funds
  */
 export async function swapXyzForToken(
-  contractClient: any,
+  contractClient: ContractClient,
   senderAddress: string,
   tokenAddress: string,
   xyzAmount: string,
@@ -69,7 +70,7 @@ export async function swapXyzForToken(
  * IMPORTANT: Token->XYZ swaps must go through CW20 Send, not direct ExecuteMsg::Swap.
  */
 export async function swapTokenForXyz(
-  contractClient: any,
+  contractClient: ContractClient,
   senderAddress: string,
   tokenAddress: string,
   tokenAmount: string,

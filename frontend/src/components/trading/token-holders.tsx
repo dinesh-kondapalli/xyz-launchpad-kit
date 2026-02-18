@@ -2,42 +2,43 @@
 
 import { useTokenHolders } from "@/hooks/use-token-holders";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DEFAULT_TOKEN_SUPPLY } from "@/lib/chain-config";
 
 interface TokenHoldersProps {
   tokenAddress: string;
   tokenSymbol: string;
 }
 
-const TOTAL_SUPPLY_MICRO = 100_000_000_000_000; // 100M * 10^6
+const DEFAULT_TOKEN_SUPPLY_MICRO = DEFAULT_TOKEN_SUPPLY * 1_000_000;
 
 export function TokenHolders({ tokenAddress, tokenSymbol }: TokenHoldersProps) {
   const { data: holders, isLoading } = useTokenHolders(tokenAddress);
 
   return (
-    <div>
-      <h2 className="text-lg font-semibold mb-3">
+    <div className="h-full">
+      <h2 className="mb-3 text-lg font-semibold text-zinc-100">
         Holders
         {holders && holders.length > 0 && (
-          <span className="text-sm font-normal text-muted-foreground ml-2">
+          <span className="ml-2 text-sm font-normal text-zinc-500">
             ({holders.length})
           </span>
         )}
       </h2>
-      <div className="rounded-md border overflow-hidden">
+      <div className="min-h-[22rem] overflow-hidden rounded-2xl border border-zinc-900 bg-[#050505]">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[520px] text-sm">
             <thead>
-              <tr className="border-b bg-muted/50">
-                <th className="text-left px-3 py-2 font-medium text-muted-foreground w-10">
+              <tr className="border-b border-zinc-900 bg-zinc-950/80">
+                <th className="w-10 px-4 py-3 text-left font-medium text-zinc-500">
                   #
                 </th>
-                <th className="text-left px-3 py-2 font-medium text-muted-foreground">
+                <th className="px-4 py-3 text-left font-medium text-zinc-500">
                   Address
                 </th>
-                <th className="text-right px-3 py-2 font-medium text-muted-foreground">
+                <th className="px-4 py-3 text-right font-medium text-zinc-500">
                   Balance
                 </th>
-                <th className="text-right px-3 py-2 font-medium text-muted-foreground w-20">
+                <th className="w-20 px-4 py-3 text-right font-medium text-zinc-500">
                   %
                 </th>
               </tr>
@@ -47,16 +48,16 @@ export function TokenHolders({ tokenAddress, tokenSymbol }: TokenHoldersProps) {
                 <>
                   {Array.from({ length: 5 }).map((_, i) => (
                     <tr key={i} className="border-b last:border-0">
-                      <td className="px-3 py-2">
+                      <td className="px-4 py-3">
                         <Skeleton className="h-4 w-4" />
                       </td>
-                      <td className="px-3 py-2">
+                      <td className="px-4 py-3">
                         <Skeleton className="h-4 w-40" />
                       </td>
-                      <td className="px-3 py-2">
+                      <td className="px-4 py-3">
                         <Skeleton className="h-4 w-24 ml-auto" />
                       </td>
-                      <td className="px-3 py-2">
+                      <td className="px-4 py-3">
                         <Skeleton className="h-4 w-12 ml-auto" />
                       </td>
                     </tr>
@@ -68,7 +69,7 @@ export function TokenHolders({ tokenAddress, tokenSymbol }: TokenHoldersProps) {
                 <tr>
                   <td
                     colSpan={4}
-                    className="px-3 py-8 text-center text-muted-foreground"
+                    className="px-4 py-8 text-center text-zinc-500"
                   >
                     No holders yet
                   </td>
@@ -77,22 +78,20 @@ export function TokenHolders({ tokenAddress, tokenSymbol }: TokenHoldersProps) {
 
               {holders?.map((holder, i) => {
                 const pct =
-                  (Number(holder.balance) / TOTAL_SUPPLY_MICRO) * 100;
+                  (Number(holder.balance) / DEFAULT_TOKEN_SUPPLY_MICRO) * 100;
                 return (
                   <tr
                     key={holder.address}
-                    className="border-b last:border-0 hover:bg-muted/30 transition-colors"
+                    className="border-b border-zinc-900 transition-colors hover:bg-zinc-950"
                   >
-                    <td className="px-3 py-2 text-muted-foreground">
-                      {i + 1}
-                    </td>
-                    <td className="px-3 py-2 font-mono text-muted-foreground">
+                    <td className="px-4 py-3 text-zinc-500">{i + 1}</td>
+                    <td className="px-4 py-3 font-mono text-zinc-500">
                       {truncateAddress(holder.address)}
                     </td>
-                    <td className="px-3 py-2 text-right font-mono whitespace-nowrap">
+                    <td className="px-4 py-3 text-right font-mono whitespace-nowrap">
                       {formatBalance(holder.balance)} {tokenSymbol}
                     </td>
-                    <td className="px-3 py-2 text-right font-mono whitespace-nowrap">
+                    <td className="px-4 py-3 text-right font-mono whitespace-nowrap">
                       {pct < 0.01 ? "<0.01" : pct.toFixed(2)}%
                     </td>
                   </tr>

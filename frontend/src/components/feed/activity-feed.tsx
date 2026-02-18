@@ -12,7 +12,7 @@ export function ActivityFeed() {
       {/* Section header with live indicator */}
       <div className="flex items-center gap-2">
         <h2 className="text-xl font-semibold text-zinc-100">Recent Activity</h2>
-        <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+        <span className="h-2 w-2 animate-pulse rounded-sm bg-pink-600" />
       </div>
 
       {/* Loading state */}
@@ -26,14 +26,14 @@ export function ActivityFeed() {
 
       {/* Error state */}
       {error && (
-        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
-          Failed to load recent activity.
-        </div>
+          <div className="rounded-xl border border-zinc-800 bg-pink-950/30 p-4 text-sm text-pink-300">
+            Failed to load recent activity.
+          </div>
       )}
 
       {/* Empty state */}
       {!isLoading && !error && (!trades || trades.length === 0) && (
-          <p className="py-8 text-center text-zinc-400">
+          <p className="py-8 text-center text-zinc-500">
             No recent trades
           </p>
       )}

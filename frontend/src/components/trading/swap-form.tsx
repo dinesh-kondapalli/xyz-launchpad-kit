@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -46,8 +46,8 @@ export function SwapForm({ tokenAddress, tokenSymbol }: SwapFormProps) {
     defaultValues: { offerAmount: "", slippage: 1 },
   });
 
-  const offerAmount = form.watch("offerAmount");
-  const slippage = form.watch("slippage");
+  const offerAmount = useWatch({ control: form.control, name: "offerAmount" });
+  const slippage = useWatch({ control: form.control, name: "slippage" });
 
   // Simulation query
   const { data: simulation, isLoading: isSimulating } = useQuery({
@@ -148,14 +148,14 @@ export function SwapForm({ tokenAddress, tokenSymbol }: SwapFormProps) {
         className="space-y-6"
       >
         {/* Direction toggle */}
-        <div className="inline-flex h-10 w-full items-stretch rounded-lg bg-muted p-1">
+        <div className="inline-flex h-10 w-full items-stretch rounded-xl border border-zinc-800 bg-zinc-950 p-1">
           <button
             type="button"
-            className={`flex-1 rounded-md text-sm font-semibold transition-colors touch-manipulation ${
-              buyDirection
-                ? "bg-background text-foreground"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
+              className={`flex-1 rounded-md text-sm font-semibold transition-colors touch-manipulation ${
+                buyDirection
+                  ? "bg-pink-900/35 text-pink-100"
+                  : "text-zinc-500 hover:text-zinc-100"
+              }`}
             onClick={() => {
               setBuyDirection(true);
               form.reset();
@@ -165,11 +165,11 @@ export function SwapForm({ tokenAddress, tokenSymbol }: SwapFormProps) {
           </button>
           <button
             type="button"
-            className={`flex-1 rounded-md text-sm font-semibold transition-colors touch-manipulation ${
-              !buyDirection
-                ? "bg-background text-foreground"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
+              className={`flex-1 rounded-md text-sm font-semibold transition-colors touch-manipulation ${
+                !buyDirection
+                  ? "bg-pink-900/35 text-pink-100"
+                  : "text-zinc-500 hover:text-zinc-100"
+              }`}
             onClick={() => {
               setBuyDirection(false);
               form.reset();

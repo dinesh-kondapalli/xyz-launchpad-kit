@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { name, symbol, creator, image } = await req.json();
+    const { name, symbol, creator } = await req.json();
 
     const text = [
       `<b>🪙 New Token Minted</b>`,

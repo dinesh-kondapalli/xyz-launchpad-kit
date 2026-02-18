@@ -9,6 +9,7 @@ import type {
 } from "./types";
 
 const LAUNCHPAD_CONTRACT = process.env.NEXT_PUBLIC_LAUNCHPAD_CONTRACT!;
+type ContractClient = Parameters<typeof executeContract>[0];
 
 /**
  * Query: Simulate a buy transaction to get expected output
@@ -70,7 +71,7 @@ export async function getConfig(
  * Sends native XYZ as funds attached to the message
  */
 export async function buyTokens(
-  contractClient: any,
+  contractClient: ContractClient,
   senderAddress: string,
   tokenAddress: string,
   xyzAmount: string,
@@ -99,7 +100,7 @@ export async function buyTokens(
  * The launchpad uses Receive(Cw20ReceiveMsg) which decodes SellTokens from the inner msg.
  */
 export async function sellTokens(
-  contractClient: any,
+  contractClient: ContractClient,
   senderAddress: string,
   tokenAddress: string,
   tokenAmount: string,
@@ -120,7 +121,7 @@ export async function sellTokens(
  * Requires creation fee in uxyz (query getConfig for current fee)
  */
 export async function createToken(
-  contractClient: any,
+  contractClient: ContractClient,
   senderAddress: string,
   params: {
     name: string;

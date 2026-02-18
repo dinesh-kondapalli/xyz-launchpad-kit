@@ -35,14 +35,14 @@ export function TradingChart({ tokenAddress }: TradingChartProps) {
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Price Chart</h2>
+          <h2 className="text-lg font-semibold text-zinc-100">Price Chart</h2>
         </div>
-        <div className="flex items-center justify-center h-[400px] rounded-lg border border-destructive/50 bg-destructive/10">
+        <div className="flex h-[400px] items-center justify-center rounded-2xl border border-zinc-800 bg-pink-950/30">
           <div className="text-center space-y-2">
-            <p className="text-destructive font-medium">
+            <p className="font-medium text-pink-300">
               Failed to load chart
             </p>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-zinc-500">
               {error instanceof Error ? error.message : "Unknown error"}
             </p>
             <Button variant="outline" size="sm" onClick={() => refetch()}>
@@ -74,28 +74,28 @@ export function TradingChart({ tokenAddress }: TradingChartProps) {
           </Tabs>
 
           {/* Price / MCap toggle */}
-          <div className="flex items-center text-xs font-medium">
-            <button
-              type="button"
-              onClick={() => setShowMCap(false)}
-              className={`px-2 py-1 rounded-l transition-colors ${
-                !showMCap
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              Price
+            <div className="flex items-center text-xs font-medium">
+              <button
+                type="button"
+                onClick={() => setShowMCap(false)}
+                className={`px-2 py-1 rounded-l transition-colors ${
+                  !showMCap
+                    ? "bg-pink-900/35 text-pink-100"
+                    : "bg-zinc-950 text-zinc-500 hover:text-zinc-100"
+                }`}
+              >
+                Price
             </button>
             <button
               type="button"
-              onClick={() => setShowMCap(true)}
-              className={`px-2 py-1 rounded-r transition-colors ${
-                showMCap
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              MCap
+                onClick={() => setShowMCap(true)}
+                className={`px-2 py-1 rounded-r transition-colors ${
+                  showMCap
+                    ? "bg-pink-900/35 text-pink-100"
+                    : "bg-zinc-950 text-zinc-500 hover:text-zinc-100"
+                }`}
+              >
+                MCap
             </button>
           </div>
         </div>
@@ -104,7 +104,7 @@ export function TradingChart({ tokenAddress }: TradingChartProps) {
       <IndicatorToolbar indicators={indicators} onChange={setIndicators} />
 
       {hasData ? (
-        <div className="rounded-lg border overflow-hidden">
+        <div className="overflow-hidden rounded-2xl border border-zinc-900 bg-[#050505]">
           <TradingChartCanvas
             data={data}
             indicators={indicators}
@@ -112,12 +112,12 @@ export function TradingChart({ tokenAddress }: TradingChartProps) {
           />
         </div>
       ) : (
-        <div className="flex items-center justify-center h-[400px] rounded-lg border">
+        <div className="flex h-[400px] items-center justify-center rounded-2xl border border-zinc-900 bg-[#050505]">
           <div className="text-center space-y-2">
-            <p className="text-muted-foreground">
+            <p className="text-zinc-500">
               No trading data available yet
             </p>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-zinc-600">
               Chart will appear after first trade
             </p>
           </div>
