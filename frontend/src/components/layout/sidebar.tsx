@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BookOpenText,
+  CaretLeft,
+  CaretRight,
   PlusCircle,
   SquaresFour,
   Trophy,
@@ -18,15 +20,42 @@ const navItems = [
   { label: "Docs", href: "#", disabled: true, icon: BookOpenText },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  isCollapsed: boolean;
+  onToggle: () => void;
+}
+
+export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
   const pathname = usePathname();
 
   return (
-    <aside className="fixed left-0 top-16 z-30 hidden h-[calc(100vh-4rem)] w-64 flex-col bg-black/95 px-4 pb-6 pt-5 text-zinc-100 lg:flex">
-      <div className="px-2">
-        <div className="text-[11px] uppercase tracking-[0.2em] text-zinc-500">
+    <aside
+      className={`fixed left-0 top-16 z-30 hidden h-[calc(100vh-4rem)] flex-col overflow-x-hidden bg-black/95 px-4 pb-6 pt-5 text-zinc-100 transition-[width] duration-300 ease-in-out lg:flex ${
+        isCollapsed ? "w-20" : "w-64"
+      }`}
+    >
+      <div className="flex items-center justify-between px-2">
+        <div
+          className={`overflow-hidden whitespace-nowrap text-[11px] uppercase tracking-[0.2em] text-zinc-500 transition-all ease-in-out ${
+            isCollapsed
+              ? "max-w-0 -translate-x-2 opacity-0 duration-100"
+              : "max-w-40 translate-x-0 opacity-100 delay-75 duration-200"
+          }`}
+        >
           Main Menu
         </div>
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          className="inline-flex h-7 w-7 items-center justify-center rounded border border-zinc-800 bg-zinc-950 text-zinc-400 transition-colors hover:text-zinc-100"
+        >
+          {isCollapsed ? (
+            <CaretRight size={14} weight="bold" />
+          ) : (
+            <CaretLeft size={14} weight="bold" />
+          )}
+        </button>
       </div>
 
       <nav className="mt-5 flex flex-1 flex-col gap-1">
@@ -39,33 +68,48 @@ export function Sidebar() {
               key={item.label}
               href={item.href}
               aria-disabled={item.disabled}
-              className={`group flex items-center gap-3 rounded-md border border-transparent px-3 py-2 text-sm font-medium transition-colors ${
+              title={isCollapsed ? item.label : undefined}
+              className={`group flex items-center gap-3 overflow-hidden rounded-md border border-transparent px-3 py-2 text-sm font-medium transition-colors ${
                 item.disabled
                   ? "pointer-events-none text-zinc-600"
-                  : "text-zinc-300  hover:bg-zinc-900/60 hover:text-zinc-100"
-              } ${isActive ? "relative bg-zinc-900/70 text-zinc-100" : ""}`}
+                  : "text-zinc-300  hover:text-zinc-100"
+              } ${isActive ? "relative  text-zinc-100" : ""}`}
             >
               {isActive ? (
-                <span className="pointer-events-none absolute inset-x-0 top-0 h-0.5 rounded-t-md bg-pink-500/70" />
+                <span className="pointer-events-none absolute left-0 top-1/2 h-7 w-0.5 -translate-y-1/2 rounded-r-sm bg-pink-500/80" />
               ) : null}
               <span
-                className={`flex h-7 w-7 items-center justify-center rounded border ${
+                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded ${
                   isActive
-                    ? " bg-zinc-800 text-zinc-100"
+                    ? " text-zinc-100"
                     : item.disabled
-                      ? " bg-zinc-950 text-zinc-600"
-                      : " bg-zinc-950 text-zinc-400 group-hover:text-zinc-100"
+                      ? " text-zinc-600"
+                      : " text-zinc-400 group-hover:text-zinc-100"
                 }`}
               >
-                <Icon size={16} weight="bold" />
+                <Icon size={16} weight={isActive ? "fill" : "bold"} />
               </span>
-              <span className="tracking-wide">{item.label}</span>
+              <span
+                className={`overflow-hidden whitespace-nowrap tracking-wide transition-all ease-in-out ${
+                  isCollapsed
+                    ? "max-w-0 -translate-x-2 opacity-0 duration-100"
+                    : "max-w-40 translate-x-0 opacity-100 delay-75 duration-200"
+                }`}
+              >
+                {item.label}
+              </span>
             </Link>
           );
         })}
       </nav>
 
-      <div className="mt-auto px-2 text-xs text-zinc-600">
+      <div
+        className={`mt-auto overflow-hidden whitespace-nowrap px-2 text-xs text-zinc-600 transition-all ease-in-out ${
+          isCollapsed
+            ? "max-h-0 max-w-0 -translate-x-2 opacity-0 duration-100"
+            : "max-h-8 max-w-40 translate-x-0 opacity-100 delay-75 duration-200"
+        }`}
+      >
         Built for launchpads
       </div>
     </aside>
