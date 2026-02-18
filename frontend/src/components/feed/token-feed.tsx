@@ -13,17 +13,24 @@ import type { TokenListItem } from "@/lib/api";
 type SortMode = "newest" | "trending" | "graduating";
 
 function sortTokens(tokens: TokenListItem[], mode: SortMode): TokenListItem[] {
-  const filtered = mode === "graduating" ? tokens.filter((t) => !t.graduated) : tokens;
+  const filtered =
+    mode === "graduating" ? tokens.filter((t) => !t.graduated) : tokens;
 
   switch (mode) {
     case "newest":
       return [...filtered].sort(
-        (a, b) => new Date(b.first_seen_at).getTime() - new Date(a.first_seen_at).getTime()
+        (a, b) =>
+          new Date(b.first_seen_at).getTime() -
+          new Date(a.first_seen_at).getTime(),
       );
     case "trending":
-      return [...filtered].sort((a, b) => (b.trade_count_24h ?? 0) - (a.trade_count_24h ?? 0));
+      return [...filtered].sort(
+        (a, b) => (b.trade_count_24h ?? 0) - (a.trade_count_24h ?? 0),
+      );
     case "graduating":
-      return [...filtered].sort((a, b) => (Number(b.xyz_reserves) || 0) - (Number(a.xyz_reserves) || 0));
+      return [...filtered].sort(
+        (a, b) => (Number(b.xyz_reserves) || 0) - (Number(a.xyz_reserves) || 0),
+      );
     default:
       return filtered;
   }
@@ -61,9 +68,20 @@ export function TokenFeed() {
 
   const stats = useMemo(() => {
     const totalCoins = filteredTokens.length;
-    const totalVolume = filteredTokens.reduce((sum, token) => sum + Number(token.volume_24h || "0"), 0) / 1_000_000;
-    const totalReserves = filteredTokens.reduce((sum, token) => sum + Number(token.xyz_reserves || "0"), 0) / 1_000_000;
-    const totalTrades = filteredTokens.reduce((sum, token) => sum + Number(token.trade_count_24h || 0), 0);
+    const totalVolume =
+      filteredTokens.reduce(
+        (sum, token) => sum + Number(token.volume_24h || "0"),
+        0,
+      ) / 1_000_000;
+    const totalReserves =
+      filteredTokens.reduce(
+        (sum, token) => sum + Number(token.xyz_reserves || "0"),
+        0,
+      ) / 1_000_000;
+    const totalTrades = filteredTokens.reduce(
+      (sum, token) => sum + Number(token.trade_count_24h || 0),
+      0,
+    );
     return { totalCoins, totalVolume, totalReserves, totalTrades };
   }, [filteredTokens]);
 
@@ -92,15 +110,29 @@ export function TokenFeed() {
                     {featuredToken.name ?? "Unnamed Token"}
                   </p>
                   <p className="pt-1 text-xs uppercase tracking-[0.14em] text-zinc-500">
-                    created by <span className="font-semibold text-pink-400">{truncate(featuredToken.creator ?? featuredToken.address, 5)}</span>
+                    created by{" "}
+                    <span className="font-semibold text-pink-400">
+                      {truncate(
+                        featuredToken.creator ?? featuredToken.address,
+                        5,
+                      )}
+                    </span>
                   </p>
-                  <p className="pt-2 text-sm text-zinc-300">{featuredToken.description ?? featuredToken.symbol ?? "New launch"}</p>
+                  <p className="pt-2 text-sm text-zinc-300">
+                    {featuredToken.description ??
+                      featuredToken.symbol ??
+                      "New launch"}
+                  </p>
                 </div>
 
                 <div className="max-w-[280px]">
-                  <p className="text-xs uppercase tracking-[0.1em] text-zinc-500">Market Cap</p>
+                  <p className="text-xs uppercase tracking-[0.1em] text-zinc-500">
+                    Market Cap
+                  </p>
                   <div className="mt-1 flex items-center gap-3">
-                    <span className="text-sm font-semibold text-zinc-50">{formatCompact(stats.totalReserves)} SOL</span>
+                    <span className="text-sm font-semibold text-zinc-50">
+                      {formatCompact(stats.totalReserves)} SOL
+                    </span>
                     <span className="h-[3px] flex-1 bg-zinc-900">
                       <span className="block h-[3px] w-2/5 bg-pink-700" />
                     </span>
@@ -108,18 +140,28 @@ export function TokenFeed() {
                 </div>
               </div>
             </div>
-
           </div>
         ) : (
-          <div className="py-14 text-center text-zinc-500">No live launches yet.</div>
+          <div className="py-14 text-center text-zinc-500">
+            No live launches yet.
+          </div>
         )}
       </section>
 
       <section className="grid grid-cols-2 overflow-hidden rounded-2xl border border-zinc-900 bg-[#050505] sm:grid-cols-4">
         <StatCard label="Total Coins" value={formatCompact(stats.totalCoins)} />
-        <StatCard label="Total Volume" value={`${formatCompact(stats.totalVolume)} SOL`} />
-        <StatCard label="Total Reserves" value={`${formatCompact(stats.totalReserves)} SOL`} />
-        <StatCard label="Total Trades" value={formatCompact(stats.totalTrades)} />
+        <StatCard
+          label="Total Volume"
+          value={`${formatCompact(stats.totalVolume)} XYZ`}
+        />
+        <StatCard
+          label="Total Reserves"
+          value={`${formatCompact(stats.totalReserves)} XYZ`}
+        />
+        <StatCard
+          label="Total Trades"
+          value={formatCompact(stats.totalTrades)}
+        />
       </section>
 
       <section className="space-y-4 rounded-2xl border border-zinc-900 bg-[#050505] p-3 sm:p-4">
@@ -147,9 +189,24 @@ export function TokenFeed() {
               <SlidersHorizontal size={14} weight="fill" />
               Bump Order
             </Button>
-            <SortPill active={sortMode === "newest"} onClick={() => setSortMode("newest")}>Newest</SortPill>
-            <SortPill active={sortMode === "trending"} onClick={() => setSortMode("trending")}>Trending</SortPill>
-            <SortPill active={sortMode === "graduating"} onClick={() => setSortMode("graduating")}>Graduating</SortPill>
+            <SortPill
+              active={sortMode === "newest"}
+              onClick={() => setSortMode("newest")}
+            >
+              Newest
+            </SortPill>
+            <SortPill
+              active={sortMode === "trending"}
+              onClick={() => setSortMode("trending")}
+            >
+              Trending
+            </SortPill>
+            <SortPill
+              active={sortMode === "graduating"}
+              onClick={() => setSortMode("graduating")}
+            >
+              Graduating
+            </SortPill>
           </div>
         </div>
 
@@ -161,18 +218,25 @@ export function TokenFeed() {
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
           {isLoading
-            ? Array.from({ length: 8 }).map((_, i) => <TokenCardSkeleton key={i} />)
-            : filteredTokens.map((token) => <TokenCard key={token.address} token={token} />)}
+            ? Array.from({ length: 8 }).map((_, i) => (
+                <TokenCardSkeleton key={i} />
+              ))
+            : filteredTokens.map((token) => (
+                <TokenCard key={token.address} token={token} />
+              ))}
         </div>
 
         {!isLoading && !error && filteredTokens.length === 0 && (
-          <p className="py-14 text-center text-zinc-500">No active token launches found.</p>
+          <p className="py-14 text-center text-zinc-500">
+            No active token launches found.
+          </p>
         )}
       </section>
 
       <p className="px-2 text-center text-[11px] text-zinc-600">
-        Disclaimer: OpenFund is experimental software and data can be delayed. Always verify token metadata and smart
-        contract addresses before making any trade decisions.
+        Disclaimer: OpenFund is experimental software and data can be delayed.
+        Always verify token metadata and smart contract addresses before making
+        any trade decisions.
       </p>
     </div>
   );
@@ -182,7 +246,9 @@ function StatCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="border-r border-zinc-900 px-4 py-4 text-center last:border-r-0">
       <p className="text-3xl font-bold tracking-tight text-zinc-50">{value}</p>
-      <p className="text-xs uppercase tracking-[0.12em] text-zinc-500">{label}</p>
+      <p className="text-xs uppercase tracking-[0.12em] text-zinc-500">
+        {label}
+      </p>
     </div>
   );
 }
