@@ -232,12 +232,6 @@ export function TokenFeed() {
           </p>
         )}
       </section>
-
-      <p className="px-2 text-center text-[11px] text-zinc-600">
-        Disclaimer: OpenFund is experimental software and data can be delayed.
-        Always verify token metadata and smart contract addresses before making
-        any trade decisions.
-      </p>
     </div>
   );
 }

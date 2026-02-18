@@ -102,16 +102,6 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
           );
         })}
       </nav>
-
-      <div
-        className={`mt-auto overflow-hidden whitespace-nowrap px-2 text-xs text-zinc-600 transition-all ease-in-out ${
-          isCollapsed
-            ? "max-h-0 max-w-0 -translate-x-2 opacity-0 duration-100"
-            : "max-h-8 max-w-40 translate-x-0 opacity-100 delay-75 duration-200"
-        }`}
-      >
-        Built for launchpads
-      </div>
     </aside>
   );
 }
