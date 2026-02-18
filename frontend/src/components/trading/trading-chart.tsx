@@ -80,7 +80,7 @@ export function TradingChart({ tokenAddress }: TradingChartProps) {
                 onClick={() => setShowMCap(false)}
                 className={`px-2 py-1 rounded-l transition-colors ${
                   !showMCap
-                    ? "bg-pink-900/35 text-pink-100"
+                    ? "bg-emerald-900/35 text-emerald-100"
                     : "bg-zinc-950 text-zinc-500 hover:text-zinc-100"
                 }`}
               >
@@ -91,7 +91,7 @@ export function TradingChart({ tokenAddress }: TradingChartProps) {
                 onClick={() => setShowMCap(true)}
                 className={`px-2 py-1 rounded-r transition-colors ${
                   showMCap
-                    ? "bg-pink-900/35 text-pink-100"
+                    ? "bg-emerald-900/35 text-emerald-100"
                     : "bg-zinc-950 text-zinc-500 hover:text-zinc-100"
                 }`}
               >

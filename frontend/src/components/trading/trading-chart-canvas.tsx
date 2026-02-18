@@ -45,6 +45,9 @@ const COLORS: Record<string, string> = {
   bollLower: "rgba(244,63,94,0.4)",
 };
 
+const PRICE_UP_COLOR = "#34d399";
+const PRICE_DOWN_COLOR = "#ffffff";
+
 function formatChartPrice(v: number): string {
   if (v >= 1e9) return `$${(v / 1e9).toFixed(1)}B`;
   if (v >= 1e6) return `$${(v / 1e6).toFixed(2)}M`;
@@ -120,8 +123,8 @@ export function TradingChartCanvas({
         value: (Number(candle.volume) / 1e6) * volMul,
         color:
           close >= open
-            ? "rgba(236, 72, 153, 0.5)"
-            : "rgba(113, 113, 122, 0.6)",
+            ? "rgba(52, 211, 153, 0.55)"
+            : "rgba(255, 255, 255, 0.5)",
       });
     }
 
@@ -178,11 +181,14 @@ export function TradingChartCanvas({
     chartRef.current = chart;
 
     const candleSeries = chart.addSeries(CandlestickSeries, {
-      upColor: "#ec4899",
-      downColor: "#71717a",
+      upColor: PRICE_UP_COLOR,
+      downColor: PRICE_DOWN_COLOR,
       borderVisible: false,
-      wickUpColor: "#ec4899",
-      wickDownColor: "#71717a",
+      wickUpColor: PRICE_UP_COLOR,
+      wickDownColor: PRICE_DOWN_COLOR,
+      priceLineColor: PRICE_DOWN_COLOR,
+      priceLineVisible: true,
+      lastValueVisible: true,
     });
     candleSeries.priceScale().applyOptions({
       scaleMargins: { top: 0.1, bottom: 0.4 },
@@ -378,29 +384,29 @@ export function TradingChartCanvas({
           <>
             <span>
               <span className="text-muted-foreground">O</span>
-              <span className={up ? "text-pink-400" : "text-zinc-400"}>
+              <span className={up ? "text-emerald-400" : "text-white"}>
                 {formatChartPrice(displayedLegend.open)}
               </span>
             </span>
             <span>
               <span className="text-muted-foreground">H</span>
-              <span className="text-pink-400">
+              <span className="text-emerald-400">
                 {formatChartPrice(displayedLegend.high)}
               </span>
             </span>
             <span>
               <span className="text-muted-foreground">L</span>
-              <span className="text-zinc-400">
+              <span className="text-white">
                 {formatChartPrice(displayedLegend.low)}
               </span>
             </span>
             <span>
               <span className="text-muted-foreground">C</span>
-              <span className={up ? "text-pink-400" : "text-zinc-400"}>
+              <span className={up ? "text-emerald-400" : "text-white"}>
                 {formatChartPrice(displayedLegend.close)}
               </span>
             </span>
-            <span className={up ? "text-pink-400" : "text-zinc-400"}>
+            <span className={up ? "text-emerald-400" : "text-white"}>
               {up ? "+" : "-"}
               {formatChartPrice(Math.abs(change))} (
               {changePct >= 0 ? "+" : ""}
@@ -414,7 +420,7 @@ export function TradingChartCanvas({
           <span className="text-muted-foreground font-sans text-[11px]">
             Volume
           </span>{" "}
-          <span className="text-pink-300">
+          <span className="text-emerald-300">
             {formatChartPrice(displayedLegend.volume)}
           </span>
         </div>
