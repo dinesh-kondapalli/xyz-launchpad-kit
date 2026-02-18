@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { SpinnerGap, UploadSimple, X } from "@phosphor-icons/react";
+import { SpinnerGap, UploadSimple, Wallet, X } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -47,7 +47,11 @@ export function CreateTokenForm() {
     queryKey: ["launchpad-config"],
     queryFn: async () => {
       const { createClient } = await import("@xyz-chain/sdk");
-      const readClient = await createClient({ rpcEndpoint: RPC_ENDPOINT, restEndpoint: REST_ENDPOINT, chainId: CHAIN_ID });
+      const readClient = await createClient({
+        rpcEndpoint: RPC_ENDPOINT,
+        restEndpoint: REST_ENDPOINT,
+        chainId: CHAIN_ID,
+      });
       const result = await getConfig(readClient);
       readClient.disconnect();
       return result;
@@ -90,7 +94,10 @@ export function CreateTokenForm() {
         const formData = new FormData();
         formData.append("file", file);
 
-        const res = await fetch("/api/upload", { method: "POST", body: formData });
+        const res = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        });
         const data = await res.json();
 
         if (!res.ok) {
@@ -110,7 +117,7 @@ export function CreateTokenForm() {
         setIsUploading(false);
       }
     },
-    [form]
+    [form],
   );
 
   const handleDrop = useCallback(
@@ -120,7 +127,7 @@ export function CreateTokenForm() {
       const file = e.dataTransfer.files[0];
       if (file) handleFileUpload(file);
     },
-    [handleFileUpload]
+    [handleFileUpload],
   );
 
   const handleRemoveImage = useCallback(() => {
@@ -137,12 +144,19 @@ export function CreateTokenForm() {
       }
 
       const contractClient = await createContractClient(
-        { rpcEndpoint: RPC_ENDPOINT, restEndpoint: REST_ENDPOINT, chainId: CHAIN_ID },
-        connection
+        {
+          rpcEndpoint: RPC_ENDPOINT,
+          restEndpoint: REST_ENDPOINT,
+          chainId: CHAIN_ID,
+        },
+        connection,
       );
 
       const socialLinksArray = values.socialLinks
-        ? values.socialLinks.split(",").map((s) => s.trim()).filter(Boolean)
+        ? values.socialLinks
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean)
         : [];
 
       return createToken(
@@ -155,7 +169,7 @@ export function CreateTokenForm() {
           description: values.description || "",
           socialLinks: socialLinksArray,
         },
-        creationFee
+        creationFee,
       );
     },
     onMutate: () => {
@@ -184,8 +198,7 @@ export function CreateTokenForm() {
       router.push("/");
     },
     onError: (error) => {
-      const message =
-        error instanceof Error ? error.message : "Unknown error";
+      const message = error instanceof Error ? error.message : "Unknown error";
       toast.error("Failed to create token", {
         id: "create-token",
         description: message.includes("insufficient funds")
@@ -201,50 +214,56 @@ export function CreateTokenForm() {
         onSubmit={form.handleSubmit((values) => mutation.mutate(values))}
         className="space-y-6"
       >
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Token Name</FormLabel>
-              <FormControl>
-                <Input
-                  {...field}
-                  placeholder="My Awesome Token"
-                  disabled={mutation.isPending}
-                />
-              </FormControl>
-              <FormDescription>
-                The full name of your token (max 32 characters)
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="flex flex-col gap-6 md:flex-row md:items-start">
+          <div className="flex-1">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Token Name</FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      placeholder="My Awesome Token"
+                      disabled={mutation.isPending}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    The full name of your token (max 32 characters)
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
 
-        <FormField
-          control={form.control}
-          name="symbol"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Symbol</FormLabel>
-              <FormControl>
-                <Input
-                  {...field}
-                  placeholder="MAT"
-                  onChange={(e) =>
-                    field.onChange(e.target.value.toUpperCase())
-                  }
-                  disabled={mutation.isPending}
-                />
-              </FormControl>
-              <FormDescription>
-                Ticker symbol, uppercase letters and numbers only (max 10)
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+          <div className="flex-1">
+            <FormField
+              control={form.control}
+              name="symbol"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Symbol</FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      placeholder="MAT"
+                      onChange={(e) =>
+                        field.onChange(e.target.value.toUpperCase())
+                      }
+                      disabled={mutation.isPending}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Ticker symbol, uppercase letters and numbers only (max 10)
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
 
         <FormField
           control={form.control}
@@ -269,8 +288,8 @@ export function CreateTokenForm() {
                     isDragOver
                       ? "border-zinc-700 bg-pink-950/20"
                       : imagePreview
-                      ? "border-zinc-700"
-                      : "cursor-pointer border-zinc-700 hover:border-zinc-600"
+                        ? "border-zinc-700"
+                        : "cursor-pointer border-zinc-700 hover:border-zinc-600"
                   }`}
                 >
                   <input
@@ -287,10 +306,12 @@ export function CreateTokenForm() {
 
                   {isUploading ? (
                     <div className="flex flex-col items-center gap-2 py-4">
-                      <SpinnerGap size={32} weight="fill" className="animate-spin text-zinc-500" />
-                      <p className="text-sm text-zinc-500">
-                        Uploading...
-                      </p>
+                      <SpinnerGap
+                        size={32}
+                        weight="fill"
+                        className="animate-spin text-zinc-500"
+                      />
+                      <p className="text-sm text-zinc-500">Uploading...</p>
                     </div>
                   ) : imagePreview ? (
                     <div className="relative">
@@ -313,7 +334,11 @@ export function CreateTokenForm() {
                     </div>
                   ) : (
                     <div className="flex flex-col items-center gap-2 py-4">
-                      <UploadSimple size={32} weight="fill" className="text-zinc-500" />
+                      <UploadSimple
+                        size={32}
+                        weight="fill"
+                        className="text-zinc-500"
+                      />
                       <div className="text-center">
                         <p className="text-sm font-medium text-zinc-100">
                           Drop image here or click to browse
@@ -374,26 +399,30 @@ export function CreateTokenForm() {
           )}
         />
 
-        <div className="space-y-1 rounded-xl border border-zinc-900 bg-zinc-950 p-4 text-sm">
-          <p className="font-medium text-zinc-100">
-            Creation Fee: {creationFeeDisplay > 0 ? creationFeeUsd : "Loading..."}
-          </p>
-          <p className="text-zinc-500">
-            This fee is paid to create the bonding curve for your token.
-          </p>
-        </div>
+        <div className="flex flex-col md:flex-row md:items-stretch">
+          <div className="flex min-h-20 flex-1 flex-col justify-center space-y-1 rounded-xl border border-zinc-900 bg-zinc-950 p-4 text-sm md:rounded-r-none md:border-r-0">
+            <p className="font-medium text-zinc-100">
+              Creation Fee:{" "}
+              {creationFeeDisplay > 0 ? creationFeeUsd : "Loading..."}
+            </p>
+            <p className="text-zinc-500">
+              This fee is paid to create the bonding curve for your token.
+            </p>
+          </div>
 
-        <Button
-          type="submit"
-          className="w-full"
-          disabled={!connection || mutation.isPending || !config}
-        >
-          {!connection
-            ? "Connect Wallet"
-            : mutation.isPending
-            ? "Creating..."
-            : "Create Token"}
-        </Button>
+          <Button
+            type="submit"
+            className="h-auto min-h-20 w-full flex-1 rounded-xl md:rounded-l-none"
+            disabled={!connection || mutation.isPending || !config}
+          >
+            {!connection ? <Wallet size={16} weight="fill" /> : null}
+            {!connection
+              ? "Connect Wallet"
+              : mutation.isPending
+                ? "Creating..."
+                : "Create Token"}
+          </Button>
+        </div>
       </form>
     </Form>
   );
