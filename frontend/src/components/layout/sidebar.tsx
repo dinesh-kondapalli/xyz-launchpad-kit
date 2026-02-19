@@ -10,8 +10,8 @@ import {
 } from "@phosphor-icons/react";
 
 const navItems = [
-  { label: "Board", href: "/", icon: SquaresFour },
-  { label: "Create Token", href: "/create", icon: PlusCircle },
+  { label: "Board", href: "/", icon: SquaresFour, disabled: false },
+  { label: "Create Token", href: "/create", icon: PlusCircle, disabled: false },
 ];
 
 interface SidebarProps {
