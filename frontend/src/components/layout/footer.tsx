@@ -1,7 +1,12 @@
 import Link from "next/link";
 import { TelegramLogo, XLogo } from "@phosphor-icons/react";
 
-const footerLinks = ["Us", "Bridge", "Trade", "$XYZ"];
+const footerLinks = [
+  { label: "US", href: "https://xyzcahin.org/", external: true },
+  { label: "Bridge", href: "https://bridge.xyzchain.org/", external: true },
+  { label: "Trade", href: "https://t.me/xyztrade_bot", external: true },
+  { label: "$XYZ", href: "#", external: false },
+];
 
 export function Footer() {
   return (
@@ -37,11 +42,13 @@ export function Footer() {
               <nav className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm text-zinc-400 sm:grid-cols-1 sm:gap-y-4 sm:text-right">
                 {footerLinks.map((item) => (
                   <Link
-                    key={item}
-                    href="#"
+                    key={item.label}
+                    href={item.href}
+                    target={item.external ? "_blank" : undefined}
+                    rel={item.external ? "noreferrer" : undefined}
                     className="transition-colors hover:text-zinc-100"
                   >
-                    {item}
+                    {item.label}
                   </Link>
                 ))}
               </nav>

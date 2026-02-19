@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  BookOpenText,
   CaretLeft,
   CaretRight,
   PlusCircle,
@@ -13,7 +12,6 @@ import {
 const navItems = [
   { label: "Board", href: "/", icon: SquaresFour },
   { label: "Create Token", href: "/create", icon: PlusCircle },
-  { label: "Docs", href: "#", disabled: true, icon: BookOpenText },
 ];
 
 interface SidebarProps {

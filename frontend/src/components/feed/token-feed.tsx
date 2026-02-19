@@ -104,6 +104,10 @@ export function TokenFeed() {
 
   return (
     <div className="space-y-5">
+      <div className="flex flex-col gap-1">
+        <h1 className="text-2xl font-bold tracking-tight text-zinc-100 sm:text-3xl">Token Launches</h1>
+        <p className="text-sm text-zinc-500">Discover and trade new tokens launching on XYZ Chain</p>
+      </div>
       <section className="overflow-hidden rounded-2xl border border-zinc-900 bg-[#050505] p-4 sm:p-6">
         {featuredToken ? (
           <div className="mx-auto flex w-full max-w-3xl flex-col items-center justify-center gap-7 py-1">
