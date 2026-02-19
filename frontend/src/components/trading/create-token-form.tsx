@@ -229,9 +229,9 @@ export function CreateTokenForm() {
                       disabled={mutation.isPending}
                     />
                   </FormControl>
-                  {/*<FormDescription>
+                  <FormDescription>
                     The full name of your token (max 32 characters)
-                  </FormDescription>*/}
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -255,9 +255,9 @@ export function CreateTokenForm() {
                       disabled={mutation.isPending}
                     />
                   </FormControl>
-                  {/*<FormDescription>
+                  <FormDescription>
                     Ticker symbol, uppercase letters and numbers only (max 10)
-                  </FormDescription>*/}
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -370,9 +370,9 @@ export function CreateTokenForm() {
                   disabled={mutation.isPending}
                 />
               </FormControl>
-              {/*<FormDescription>
+              <FormDescription>
                 Up to 500 characters describing your token
-              </FormDescription>*/}
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -391,9 +391,9 @@ export function CreateTokenForm() {
                   disabled={mutation.isPending}
                 />
               </FormControl>
-              {/*<FormDescription>
+              <FormDescription>
                 Comma-separated URLs for your community channels
-              </FormDescription>*/}
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
