@@ -19,12 +19,12 @@ export function AppShell({ children }: AppShellProps) {
         onToggle={() => setIsSidebarCollapsed((prev) => !prev)}
       />
       <Header />
-      <main className="pt-16">
+      <main className="pt-16 lg:pl-64">
         <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
           {children}
         </div>
       </main>
-      <div>
+      <div className="lg:pl-64">
         <Footer />
       </div>
     </div>

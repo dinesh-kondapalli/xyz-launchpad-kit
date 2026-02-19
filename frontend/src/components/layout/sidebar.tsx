@@ -8,15 +8,11 @@ import {
   CaretRight,
   PlusCircle,
   SquaresFour,
-  Trophy,
-  UsersThree,
 } from "@phosphor-icons/react";
 
 const navItems = [
   { label: "Board", href: "/", icon: SquaresFour },
   { label: "Create Token", href: "/create", icon: PlusCircle },
-  { label: "Referral Program", href: "#", disabled: true, icon: UsersThree },
-  { label: "Leaderboard", href: "#", disabled: true, icon: Trophy },
   { label: "Docs", href: "#", disabled: true, icon: BookOpenText },
 ];
 

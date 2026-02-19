@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { TelegramLogo, XLogo } from "@phosphor-icons/react";
 
-const footerLinks = ["Us", "Launchpad", "Trade", "$XYZ"];
+const footerLinks = ["Us", "Bridge", "Trade", "$XYZ"];
 
 export function Footer() {
   return (
@@ -16,13 +16,17 @@ export function Footer() {
                 </p>
                 <div className="mt-3 flex items-center gap-3">
                   <Link
-                    href="#"
+                    href="https://x.com/xyzchainorg"
+                    target="_blank"
+                    rel="noreferrer"
                     className="inline-flex h-10 w-10 items-center justify-center  text-zinc-200 transition-colors hover:text-zinc-100"
                   >
                     <XLogo size={18} weight="bold" />
                   </Link>
                   <Link
-                    href="#"
+                    href="https://t.me/xyzchainorg"
+                    target="_blank"
+                    rel="noreferrer"
                     className="inline-flex h-10 w-10 items-center justify-center  text-zinc-200 transition-colors hover:text-zinc-100"
                   >
                     <TelegramLogo size={18} weight="fill" />
@@ -56,7 +60,7 @@ export function Footer() {
                 </Link>
               </div>
               <p className="text-4xl font-bold tracking-tight text-zinc-100 sm:text-6xl">
-                XYZ-Bridge
+                XYZ-Launchpad
               </p>
             </div>
           </div>
