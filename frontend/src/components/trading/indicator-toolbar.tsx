@@ -30,14 +30,14 @@ interface IndicatorToolbarProps {
 }
 
 const INDICATOR_BUTTONS: { key: keyof ActiveIndicators; label: string; color: string }[] = [
-  { key: "sma7", label: "MA7", color: "#be185d" },
-  { key: "sma25", label: "MA25", color: "#9d174d" },
-  { key: "sma99", label: "MA99", color: "#831843" },
-  { key: "ema7", label: "EMA7", color: "#db2777" },
-  { key: "ema25", label: "EMA25", color: "#e11d48" },
-  { key: "bollinger", label: "BOLL", color: "#f43f5e" },
-  { key: "rsi", label: "RSI", color: "#c026d3" },
-  { key: "macd", label: "MACD", color: "#ec4899" },
+  { key: "sma7", label: "MA7", color: "#75fb6e" },
+  { key: "sma25", label: "MA25", color: "#57d154" },
+  { key: "sma99", label: "MA99", color: "#3aa73a" },
+  { key: "ema7", label: "EMA7", color: "#9dff8b" },
+  { key: "ema25", label: "EMA25", color: "#2f8f3e" },
+  { key: "bollinger", label: "BOLL", color: "#75fb6e" },
+  { key: "rsi", label: "RSI", color: "#67e85f" },
+  { key: "macd", label: "MACD", color: "#4cc74b" },
   { key: "volume", label: "VOL", color: "#6b7280" },
 ];
 
@@ -55,7 +55,7 @@ export function IndicatorToolbar({ indicators, onChange }: IndicatorToolbarProps
           onClick={() => toggle(key)}
           className={`rounded-lg border px-2 py-1 text-xs font-medium transition-colors ${
             indicators[key]
-              ? "border-transparent text-white"
+              ? "border-transparent text-[#052205]"
               : "border-zinc-800 bg-zinc-950 text-zinc-500 hover:bg-zinc-900"
           }`}
           style={indicators[key] ? { backgroundColor: color } : undefined}

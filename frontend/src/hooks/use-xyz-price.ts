@@ -6,7 +6,7 @@ export const XYZ_PRICE_QUERY_KEY = ["xyz-price"] as const;
 
 interface PriceResponse {
   price: number;
-  source: "dexscreener" | "pumpfun" | "oracle";
+  source: "oracle";
 }
 
 async function fetchXyzPrice(): Promise<PriceResponse> {

@@ -52,7 +52,7 @@ export function MacdChart({ timestamps, macd }: MacdChartProps) {
 
     // MACD line
     const macdSeries = chart.addSeries(LineSeries, {
-      color: "#be185d",
+      color: "#75fb6e",
       lineWidth: 2,
       priceLineVisible: false,
       lastValueVisible: false,
@@ -61,7 +61,7 @@ export function MacdChart({ timestamps, macd }: MacdChartProps) {
 
     // Signal line
     const signalSeries = chart.addSeries(LineSeries, {
-      color: "#831843",
+      color: "#3aa73a",
       lineWidth: 2,
       priceLineVisible: false,
       lastValueVisible: false,
@@ -86,7 +86,7 @@ export function MacdChart({ timestamps, macd }: MacdChartProps) {
           value: macd.histogram[i]!,
           color:
             macd.histogram[i]! >= 0
-              ? "rgba(236, 72, 153, 0.7)"
+              ? "rgba(117, 251, 110, 0.7)"
               : "rgba(113, 113, 122, 0.8)",
         });
       }

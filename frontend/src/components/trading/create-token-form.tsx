@@ -229,9 +229,9 @@ export function CreateTokenForm() {
                       disabled={mutation.isPending}
                     />
                   </FormControl>
-                  <FormDescription>
+                  {/*<FormDescription>
                     The full name of your token (max 32 characters)
-                  </FormDescription>
+                  </FormDescription>*/}
                   <FormMessage />
                 </FormItem>
               )}
@@ -255,9 +255,9 @@ export function CreateTokenForm() {
                       disabled={mutation.isPending}
                     />
                   </FormControl>
-                  <FormDescription>
+                  {/*<FormDescription>
                     Ticker symbol, uppercase letters and numbers only (max 10)
-                  </FormDescription>
+                  </FormDescription>*/}
                   <FormMessage />
                 </FormItem>
               )}
@@ -286,7 +286,7 @@ export function CreateTokenForm() {
                   }
                   className={`relative flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-6 transition-colors ${
                     isDragOver
-                      ? "border-zinc-700 bg-pink-950/20"
+                      ? "border-zinc-700 bg-primary/15"
                       : imagePreview
                         ? "border-zinc-700"
                         : "cursor-pointer border-zinc-700 hover:border-zinc-600"
@@ -327,7 +327,7 @@ export function CreateTokenForm() {
                           e.stopPropagation();
                           handleRemoveImage();
                         }}
-                        className="absolute -right-2 -top-2 rounded-sm bg-pink-700 p-1 text-pink-50 shadow-sm hover:bg-pink-600"
+                        className="absolute -right-2 -top-2 rounded-sm bg-primary p-1 text-primary-foreground shadow-sm hover:bg-primary/90"
                       >
                         <X size={12} weight="fill" />
                       </button>
@@ -370,9 +370,9 @@ export function CreateTokenForm() {
                   disabled={mutation.isPending}
                 />
               </FormControl>
-              <FormDescription>
+              {/*<FormDescription>
                 Up to 500 characters describing your token
-              </FormDescription>
+              </FormDescription>*/}
               <FormMessage />
             </FormItem>
           )}
@@ -391,9 +391,9 @@ export function CreateTokenForm() {
                   disabled={mutation.isPending}
                 />
               </FormControl>
-              <FormDescription>
+              {/*<FormDescription>
                 Comma-separated URLs for your community channels
-              </FormDescription>
+              </FormDescription>*/}
               <FormMessage />
             </FormItem>
           )}

@@ -85,8 +85,8 @@ export default function TokenDetailPage() {
       )}
 
       {error && (
-        <div className="rounded-2xl border border-zinc-800 bg-pink-950/30 p-6 text-center">
-          <p className="font-medium text-pink-300">Token not found</p>
+        <div className="rounded-2xl border border-destructive/40 bg-destructive/15 p-6 text-center">
+          <p className="font-medium text-destructive">Token not found</p>
           <p className="mt-2 text-sm text-zinc-500">
             The token at {tokenAddress} could not be loaded.
           </p>

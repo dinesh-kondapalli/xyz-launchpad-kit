@@ -1,23 +1,22 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useState, type ReactNode } from "react";
 import { isKeplrAvailable, isLeapAvailable, isXYZAvailable, type WalletType } from "@xyz-chain/sdk";
 import { useWalletStore } from "@/stores/wallet-store";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 
 interface WalletSelectorProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  trigger: ReactNode;
 }
 
-export function WalletSelector({ open, onOpenChange }: WalletSelectorProps) {
+export function WalletSelector({ open, onOpenChange, trigger }: WalletSelectorProps) {
   const connect = useWalletStore((s) => s.connect);
   const isConnecting = useWalletStore((s) => s.isConnecting);
   const error = useWalletStore((s) => s.error);
@@ -57,14 +56,13 @@ export function WalletSelector({ open, onOpenChange }: WalletSelectorProps) {
   }, [mnemonic, handleConnect]);
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="border-zinc-800 bg-zinc-950 sm:max-w-sm">
-        <DialogHeader>
-          <DialogTitle className="text-zinc-100">Connect Wallet</DialogTitle>
-          <DialogDescription>
-            Select a wallet to connect to XYZ Chain.
-          </DialogDescription>
-        </DialogHeader>
+    <Popover open={open} onOpenChange={handleOpenChange}>
+      <PopoverTrigger asChild>{trigger}</PopoverTrigger>
+      <PopoverContent align="end" className="w-[22rem]">
+        <div className="mb-4 space-y-1">
+          <h3 className="text-base font-semibold text-zinc-100">Connect Wallet</h3>
+          <p className="text-sm text-zinc-400">Select a wallet to connect to XYZ Chain.</p>
+        </div>
 
         <div className="flex flex-col gap-3">
           <Button
@@ -150,7 +148,7 @@ export function WalletSelector({ open, onOpenChange }: WalletSelectorProps) {
         </div>
 
         {error && (
-          <p className="text-center text-sm text-pink-300">{error}</p>
+          <p className="text-center text-sm text-destructive">{error}</p>
         )}
 
         {isConnecting && (
@@ -158,7 +156,7 @@ export function WalletSelector({ open, onOpenChange }: WalletSelectorProps) {
             Connecting...
           </p>
         )}
-      </DialogContent>
-    </Dialog>
+      </PopoverContent>
+    </Popover>
   );
 }

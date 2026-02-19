@@ -17,12 +17,15 @@ export function ConnectButton() {
   }
 
   return (
-    <>
-      <Button onClick={() => setSelectorOpen(true)} disabled={isConnecting}>
-        <Wallet size={16} weight="fill" />
-        {isConnecting ? "Connecting..." : "Connect Wallet"}
-      </Button>
-      <WalletSelector open={selectorOpen} onOpenChange={setSelectorOpen} />
-    </>
+    <WalletSelector
+      open={selectorOpen}
+      onOpenChange={setSelectorOpen}
+      trigger={
+        <Button onClick={() => setSelectorOpen(true)} disabled={isConnecting}>
+          <Wallet size={16} weight="fill" />
+          {isConnecting ? "Connecting..." : "Connect Wallet"}
+        </Button>
+      }
+    />
   );
 }

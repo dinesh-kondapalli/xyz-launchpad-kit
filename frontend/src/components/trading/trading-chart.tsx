@@ -37,9 +37,9 @@ export function TradingChart({ tokenAddress }: TradingChartProps) {
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-zinc-100">Price Chart</h2>
         </div>
-        <div className="flex h-[400px] items-center justify-center rounded-2xl border border-zinc-800 bg-pink-950/30">
+        <div className="flex h-[400px] items-center justify-center rounded-2xl border border-destructive/40 bg-destructive/15">
           <div className="text-center space-y-2">
-            <p className="font-medium text-pink-300">
+            <p className="font-medium text-destructive">
               Failed to load chart
             </p>
             <p className="text-sm text-zinc-500">

@@ -36,7 +36,7 @@ export function ActivityItem({ trade }: ActivityItemProps) {
       case "xyz_to_token":
         return {
           icon: <ArrowBendUpRight size={16} weight="fill" />,
-          color: "text-pink-400",
+          color: "text-primary",
           action: "Bought",
         };
       case "sell":
@@ -49,7 +49,7 @@ export function ActivityItem({ trade }: ActivityItemProps) {
       case "swap":
         return {
           icon: <ArrowsLeftRight size={16} weight="fill" />,
-          color: "text-pink-300",
+          color: "text-primary",
           action: "Swapped",
         };
       default:

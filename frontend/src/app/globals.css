@@ -7,7 +7,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-golos-text);
   --font-mono: var(--font-geist-mono);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -55,8 +55,8 @@
   --card-foreground: #fafafa;
   --popover: #0d0d0d;
   --popover-foreground: #fafafa;
-  --primary: #be185d;
-  --primary-foreground: #fff1f7;
+  --primary: #75fb6e;
+  --primary-foreground: #052205;
   --secondary: #111111;
   --secondary-foreground: #f4f4f5;
   --muted: #121212;
@@ -66,7 +66,7 @@
   --destructive: oklch(0.577 0.245 27.325);
   --border: #27272a;
   --input: #18181b;
-  --ring: #9d174d;
+  --ring: #75fb6e;
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -74,12 +74,12 @@
   --chart-5: oklch(0.769 0.188 70.08);
   --sidebar: #080808;
   --sidebar-foreground: #fafafa;
-  --sidebar-primary: #be185d;
-  --sidebar-primary-foreground: #fff1f7;
+  --sidebar-primary: #75fb6e;
+  --sidebar-primary-foreground: #052205;
   --sidebar-accent: #121212;
   --sidebar-accent-foreground: #fafafa;
   --sidebar-border: #27272a;
-  --sidebar-ring: #9d174d;
+  --sidebar-ring: #75fb6e;
 }
 
 .dark {
@@ -89,8 +89,8 @@
   --card-foreground: #fafafa;
   --popover: #0d0d0d;
   --popover-foreground: #fafafa;
-  --primary: #be185d;
-  --primary-foreground: #fff1f7;
+  --primary: #75fb6e;
+  --primary-foreground: #052205;
   --secondary: #111111;
   --secondary-foreground: #f4f4f5;
   --muted: #121212;
@@ -100,7 +100,7 @@
   --destructive: oklch(0.704 0.191 22.216);
   --border: #27272a;
   --input: #18181b;
-  --ring: #9d174d;
+  --ring: #75fb6e;
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
@@ -108,12 +108,12 @@
   --chart-5: oklch(0.645 0.246 16.439);
   --sidebar: #080808;
   --sidebar-foreground: #fafafa;
-  --sidebar-primary: #be185d;
-  --sidebar-primary-foreground: #fff1f7;
+  --sidebar-primary: #75fb6e;
+  --sidebar-primary-foreground: #052205;
   --sidebar-accent: #121212;
   --sidebar-accent-foreground: #fafafa;
   --sidebar-border: #27272a;
-  --sidebar-ring: #9d174d;
+  --sidebar-ring: #75fb6e;
 }
 
 @layer base {
@@ -126,7 +126,7 @@
   }
 
   ::selection {
-    background: #9d174d;
-    color: #fff1f7;
+    background: #75fb6e;
+    color: #052205;
   }
 }

@@ -93,7 +93,7 @@ export function RecentTrades({ tokenAddress, tokenSymbol }: RecentTradesProps) {
                     <span
                       className={`inline-flex items-center rounded px-1.5 py-0.5 text-xs font-semibold ${
                         trade.action === "buy"
-                          ? "bg-pink-950 text-pink-300"
+                          ? "bg-primary/20 text-primary"
                           : "bg-zinc-900 text-zinc-300"
                       }`}
                     >

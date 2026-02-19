@@ -55,7 +55,7 @@ export function Footer() {
                   Privacy
                 </Link>
               </div>
-              <p className="text-4xl font-black tracking-tight text-zinc-100 sm:text-6xl">
+              <p className="text-4xl font-bold tracking-tight text-zinc-100 sm:text-6xl">
                 XYZ-Bridge
               </p>
             </div>

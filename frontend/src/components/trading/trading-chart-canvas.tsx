@@ -35,14 +35,14 @@ interface TradingChartCanvasProps {
 
 // Indicator color palette
 const COLORS: Record<string, string> = {
-  sma7: "#be185d",
-  sma25: "#9d174d",
-  sma99: "#831843",
-  ema7: "#db2777",
-  ema25: "#e11d48",
-  bollUpper: "rgba(244,63,94,0.4)",
-  bollMiddle: "#f43f5e",
-  bollLower: "rgba(244,63,94,0.4)",
+  sma7: "#75fb6e",
+  sma25: "#57d154",
+  sma99: "#3aa73a",
+  ema7: "#9dff8b",
+  ema25: "#2f8f3e",
+  bollUpper: "rgba(117, 251, 110, 0.4)",
+  bollMiddle: "#75fb6e",
+  bollLower: "rgba(117, 251, 110, 0.4)",
 };
 
 const PRICE_UP_COLOR = "#34d399";

@@ -9,7 +9,7 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "border-zinc-800 bg-pink-700 text-primary-foreground hover:bg-pink-600 hover:border-zinc-700",
+        default: "border-zinc-800 bg-primary text-primary-foreground hover:bg-primary/90 hover:border-zinc-700",
         destructive:
           "bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60",
         outline:
@@ -18,7 +18,7 @@ const buttonVariants = cva(
           "border-zinc-800 bg-zinc-900 text-zinc-100 hover:border-zinc-700 hover:bg-zinc-800",
         ghost:
           "text-zinc-300 hover:bg-zinc-900 hover:text-zinc-100",
-        link: "border-transparent p-0 text-pink-500 underline-offset-4 hover:text-pink-400 hover:underline",
+        link: "border-transparent p-0 text-primary underline-offset-4 hover:text-primary/80 hover:underline",
       },
       size: {
         default: "h-9 px-4 py-2 has-[>svg]:px-3",

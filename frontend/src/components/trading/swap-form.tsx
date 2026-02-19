@@ -153,7 +153,7 @@ export function SwapForm({ tokenAddress, tokenSymbol }: SwapFormProps) {
             type="button"
               className={`flex-1 rounded-md text-sm font-semibold transition-colors touch-manipulation ${
                 buyDirection
-                  ? "bg-pink-900/35 text-pink-100"
+                  ? "bg-primary/20 text-primary"
                   : "text-zinc-500 hover:text-zinc-100"
               }`}
             onClick={() => {
@@ -167,7 +167,7 @@ export function SwapForm({ tokenAddress, tokenSymbol }: SwapFormProps) {
             type="button"
               className={`flex-1 rounded-md text-sm font-semibold transition-colors touch-manipulation ${
                 !buyDirection
-                  ? "bg-pink-900/35 text-pink-100"
+                  ? "bg-primary/20 text-primary"
                   : "text-zinc-500 hover:text-zinc-100"
               }`}
             onClick={() => {

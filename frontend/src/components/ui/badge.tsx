@@ -9,7 +9,7 @@ const badgeVariants = cva(
   {
     variants: {
       variant: {
-        default: "border-zinc-800 bg-pink-900/70 text-pink-200 [a&]:hover:bg-pink-900",
+        default: "border-zinc-800 bg-primary/25 text-primary [a&]:hover:bg-primary/35",
         secondary:
           "border-zinc-800 bg-zinc-900 text-zinc-200 [a&]:hover:bg-zinc-800",
         destructive:

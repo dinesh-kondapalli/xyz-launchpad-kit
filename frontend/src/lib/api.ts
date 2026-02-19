@@ -68,10 +68,30 @@ function curveToTokenListItem(curve: CurveData): TokenListItem {
 }
 
 export async function fetchTokens(): Promise<TokenListItem[]> {
-  const data = await queryContract<{ curves: CurveData[] }>({
-    all_curves: { start_after: null, limit: 50 },
-  });
-  return data.curves.map(curveToTokenListItem);
+  const pageSize = 50;
+  const maxPages = 20;
+  const curves: CurveData[] = [];
+  let startAfter: string | null = null;
+
+  for (let page = 0; page < maxPages; page++) {
+    const pageResult: { curves: CurveData[] } = await queryContract({
+      all_curves: { start_after: startAfter, limit: pageSize },
+    });
+
+    if (pageResult.curves.length === 0) {
+      break;
+    }
+
+    curves.push(...pageResult.curves);
+
+    if (pageResult.curves.length < pageSize) {
+      break;
+    }
+
+    startAfter = pageResult.curves[pageResult.curves.length - 1].token_address;
+  }
+
+  return curves.map(curveToTokenListItem);
 }
 
 export async function fetchToken(address: string): Promise<TokenListItem> {

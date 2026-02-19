@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist_Mono, Golos_Text } from "next/font/google";
 import { Providers } from "@/components/providers";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const golosText = Golos_Text({
+  variable: "--font-golos-text",
   subsets: ["latin"],
+  adjustFontFallback: false,
 });
 
 const geistMono = Geist_Mono({
@@ -26,7 +27,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${golosText.variable} ${geistMono.variable} antialiased`}
       >
         <div className="relative z-10">
           <Providers>{children}</Providers>

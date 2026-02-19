@@ -76,7 +76,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
               } ${isActive ? "relative  text-zinc-100" : ""}`}
             >
               {isActive ? (
-                <span className="pointer-events-none absolute left-0 top-1/2 h-7 w-0.5 -translate-y-1/2 rounded-r-sm bg-pink-500/80" />
+                <span className="pointer-events-none absolute left-0 top-1/2 h-7 w-0.5 -translate-y-1/2 rounded-r-sm bg-primary/80" />
               ) : null}
               <span
                 className={`flex h-7 w-7 shrink-0 items-center justify-center rounded ${

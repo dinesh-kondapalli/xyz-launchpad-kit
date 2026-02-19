@@ -12,7 +12,7 @@ export function ActivityFeed() {
       {/* Section header with live indicator */}
       <div className="flex items-center gap-2">
         <h2 className="text-xl font-semibold text-zinc-100">Recent Activity</h2>
-        <span className="h-2 w-2 animate-pulse rounded-sm bg-pink-600" />
+        <span className="h-2 w-2 animate-pulse rounded-sm bg-primary" />
       </div>
 
       {/* Loading state */}
@@ -26,7 +26,7 @@ export function ActivityFeed() {
 
       {/* Error state */}
       {error && (
-          <div className="rounded-xl border border-zinc-800 bg-pink-950/30 p-4 text-sm text-pink-300">
+          <div className="rounded-xl border border-destructive/40 bg-destructive/15 p-4 text-sm text-destructive">
             Failed to load recent activity.
           </div>
       )}

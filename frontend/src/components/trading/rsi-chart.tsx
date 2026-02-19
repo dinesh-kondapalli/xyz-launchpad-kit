@@ -42,7 +42,7 @@ export function RsiChart({ timestamps, values }: RsiChartProps) {
 
     // Overbought / oversold reference lines
     const ob = chart.addSeries(LineSeries, {
-      color: "rgba(236, 72, 153, 0.35)",
+      color: "rgba(117, 251, 110, 0.35)",
       lineWidth: 1,
       lineStyle: 2, // dashed
       priceLineVisible: false,
@@ -60,7 +60,7 @@ export function RsiChart({ timestamps, values }: RsiChartProps) {
 
     // RSI line
     const rsiSeries = chart.addSeries(LineSeries, {
-      color: "#be185d",
+      color: "#75fb6e",
       lineWidth: 2,
       priceLineVisible: false,
       lastValueVisible: true,

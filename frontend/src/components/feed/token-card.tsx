@@ -20,7 +20,7 @@ export function TokenCard({ token }: TokenCardProps) {
 
   return (
     <Link href={`/token/${token.address}`} className="block w-full touch-manipulation">
-      <article className="overflow-hidden rounded-2xl border border-zinc-800 bg-[#080808] transition-all hover:-translate-y-0.5 hover:border-zinc-700">
+      <article className="overflow-hidden rounded-2xl border border-zinc-800 bg-[#080808]">
         <div className="relative aspect-square w-full overflow-hidden border-b border-zinc-900 bg-zinc-950">
           {token.image ? (
             /* eslint-disable-next-line @next/next/no-img-element */
@@ -33,7 +33,7 @@ export function TokenCard({ token }: TokenCardProps) {
               }}
             />
           ) : (
-            <div className="flex h-full w-full items-center justify-center text-5xl font-black text-zinc-600">
+            <div className="flex h-full w-full items-center justify-center text-5xl font-bold text-zinc-600">
               {(token.symbol ?? "?").slice(0, 1).toUpperCase()}
             </div>
           )}
@@ -57,7 +57,7 @@ export function TokenCard({ token }: TokenCardProps) {
 
           <div className="space-y-1">
             <p className="text-[10px] uppercase tracking-[0.1em] text-zinc-500">Market Cap</p>
-            <p className="font-mono text-sm font-semibold text-pink-300">{formatMarketCap(token.xyz_reserves, xyzPriceUsd)}</p>
+            <p className="font-mono text-sm font-semibold text-primary">{formatMarketCap(token.xyz_reserves, xyzPriceUsd)}</p>
           </div>
 
           <div className="space-y-1">
@@ -67,7 +67,7 @@ export function TokenCard({ token }: TokenCardProps) {
             </div>
             <Progress
               value={progressValue}
-              className="h-1 rounded-sm bg-zinc-900 [&>[data-slot=progress-indicator]]:bg-pink-700"
+              className="h-1 rounded-sm bg-zinc-900 [&>[data-slot=progress-indicator]]:bg-primary"
             />
           </div>
 

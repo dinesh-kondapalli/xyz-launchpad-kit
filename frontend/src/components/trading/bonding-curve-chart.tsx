@@ -58,7 +58,7 @@ export function BondingCurveChart({ tokenAddress }: BondingCurveChartProps) {
 
       <div className="h-5 w-full overflow-hidden rounded-sm bg-zinc-900">
         <div
-          className="h-full rounded-sm bg-pink-700 transition-all duration-500"
+          className="h-full rounded-sm bg-primary transition-all duration-500"
           style={{ width: `${Math.max(progressPct, 0.5)}%` }}
         />
       </div>
