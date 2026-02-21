@@ -57,7 +57,7 @@ export function TokenCard({ token }: TokenCardProps) {
 
           <div className="space-y-1">
             <p className="text-[10px] uppercase tracking-[0.1em] text-zinc-500">Market Cap</p>
-            <p className="font-mono text-sm font-semibold text-primary">{formatMarketCap(token.xyz_reserves, xyzPriceUsd)}</p>
+            <p className="font-mono text-sm font-semibold text-primary">{formatMarketCap(token, xyzPriceUsd)}</p>
           </div>
 
           <div className="space-y-1">
@@ -72,7 +72,7 @@ export function TokenCard({ token }: TokenCardProps) {
           </div>
 
           <div className="flex items-center justify-between border-t border-zinc-900 pt-2 text-[11px] text-zinc-500">
-            <span>{formatDistanceToNow(new Date(token.first_seen_at), { addSuffix: true })}</span>
+            <span>{formatAge(token.first_seen_at)}</span>
             <span className="font-mono text-zinc-300">{formatPrice(token.current_price, xyzPriceUsd)}</span>
           </div>
         </div>
@@ -86,9 +86,20 @@ function formatPrice(priceXyz: string, xyzPriceUsd: number): string {
   return formatUsd(usd);
 }
 
-function formatMarketCap(reservesUxyz: string, xyzPriceUsd: number): string {
-  const usd = (Number(reservesUxyz || "0") / 1_000_000) * xyzPriceUsd;
-  return formatUsd(usd);
+function formatMarketCap(token: TokenListItem, xyzPriceUsd: number): string {
+  // Market cap = current_price (XYZ per token) * total token supply (1B micro / 1e6)
+  // current_price is in XYZ (e.g. "0.000001"), total supply is 1B micro-tokens = 1000 tokens
+  const priceXyz = Number(token.current_price || "0");
+  const totalSupplyTokens = 1_000_000_000 / 1_000_000; // 1B micro-tokens / 6 decimals = 1000 tokens
+  const mcapUsd = priceXyz * totalSupplyTokens * xyzPriceUsd;
+  return formatUsd(mcapUsd);
+}
+
+function formatAge(dateStr: string): string {
+  const date = new Date(dateStr);
+  // Guard against epoch 0 or invalid dates
+  if (isNaN(date.getTime()) || date.getTime() < 86400000) return "just now";
+  return formatDistanceToNow(date, { addSuffix: true });
 }
 
 function truncate(value: string, size: number): string {
