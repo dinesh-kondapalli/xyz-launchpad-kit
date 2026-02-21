@@ -76,9 +76,10 @@ export function WelcomeModal() {
           </div>
 
           <div>
-            <h3 className="font-semibold text-zinc-100 mb-1">Creators earn</h3>
+            <h3 className="font-semibold text-zinc-100 mb-1">Limited tickers, limited supply</h3>
             <p>
-              20% of all trading fees go directly to the token creator — rewarding the people who build real communities, not just deploy and vanish.
+              Each token has a fixed supply on a bonding curve — no unlimited minting, no hidden inflation.
+              And with capped purchasing per transaction, no single wallet can sweep the entire supply at launch.
             </p>
           </div>
         </div>
