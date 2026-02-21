@@ -78,8 +78,10 @@ export function WelcomeModal() {
           <div>
             <h3 className="font-semibold text-zinc-100 mb-1">Limited tickers, limited supply</h3>
             <p>
-              Each token has a fixed supply on a bonding curve — no unlimited minting, no hidden inflation.
-              And with capped purchasing per transaction, no single wallet can sweep the entire supply at launch.
+              Every token has a fixed supply on its bonding curve — no unlimited minting, no hidden inflation.
+              Tickers and names are locked with an 8-hour cooldown after each launch, so nobody can
+              squat or spam the same idea. Combined with a creation fee, this keeps launches intentional
+              and the ticker space clean.
             </p>
           </div>
         </div>
