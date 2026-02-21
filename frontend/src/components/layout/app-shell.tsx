@@ -4,6 +4,7 @@ import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { Sidebar } from "@/components/layout/sidebar";
 import { SidebarProvider, useSidebar } from "@/components/layout/sidebar-context";
+import { WelcomeModal } from "@/components/welcome-modal";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -14,6 +15,7 @@ function ShellInner({ children }: AppShellProps) {
 
   return (
     <div className="min-h-screen bg-black text-zinc-100">
+      <WelcomeModal />
       <Sidebar isCollapsed={isCollapsed} onToggle={toggle} />
       <Header />
       <main
